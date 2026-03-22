@@ -80,134 +80,115 @@ export default function TrainingPlansPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Training Plans</h1>
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-[28px] font-semibold tracking-tight">Training Plans</h1>
+          <p className="text-[14px] text-[#9CA3AF] mt-1">
+            {plans.length} plan{plans.length !== 1 ? "s" : ""}
+          </p>
+        </div>
         {athletes.length > 0 && endeavours.length > 0 && (
           <button
             onClick={() => setShowForm(!showForm)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition"
+            className={showForm ? "btn-secondary" : "btn-primary"}
           >
-            {showForm ? "Cancel" : "+ New Plan"}
+            {showForm ? "Cancel" : "New Plan"}
           </button>
         )}
       </div>
 
-      {athletes.length === 0 || endeavours.length === 0 ? (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-700 mb-6">
-          You need at least one athlete and one endeavour before creating training plans.
+      {(athletes.length === 0 || endeavours.length === 0) && (
+        <div className="card p-4 mb-6 border-[#FFF7ED]">
+          <p className="text-[13px] text-[#D97706]">
+            Add athletes and create an endeavour before building plans.
+          </p>
         </div>
-      ) : null}
+      )}
 
       {showForm && (
-        <div className="bg-white rounded-xl shadow-sm border p-6 mb-6">
-          <h2 className="text-lg font-semibold mb-4">Create Training Plan</h2>
-          <form onSubmit={handleCreate} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Endeavour</label>
-                <select
-                  required
-                  value={form.endeavour_id}
-                  onChange={(e) => setForm({ ...form, endeavour_id: e.target.value })}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                >
-                  <option value="">Select endeavour...</option>
-                  {endeavours.map((e) => (
-                    <option key={e.id} value={e.id}>
-                      {e.title}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Athlete</label>
-                <select
-                  required
-                  value={form.athlete_id}
-                  onChange={(e) => setForm({ ...form, athlete_id: e.target.value })}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                >
-                  <option value="">Select athlete...</option>
-                  {athletes.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Plan Title</label>
-                <input
-                  required
-                  value={form.title}
-                  onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  placeholder="e.g., Base Building Phase, Peak Week"
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                <input
-                  value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
-                <input
-                  type="date"
-                  required
-                  value={form.start_date}
-                  onChange={(e) => setForm({ ...form, start_date: e.target.value })}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">End Date</label>
-                <input
-                  type="date"
-                  required
-                  value={form.end_date}
-                  onChange={(e) => setForm({ ...form, end_date: e.target.value })}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-              </div>
+        <div className="card p-6 mb-6">
+          <form onSubmit={handleCreate} className="space-y-3">
+            <div className="grid grid-cols-2 gap-3">
+              <select
+                required
+                value={form.endeavour_id}
+                onChange={(e) => setForm({ ...form, endeavour_id: e.target.value })}
+                className="input"
+              >
+                <option value="">Endeavour...</option>
+                {endeavours.map((e) => (
+                  <option key={e.id} value={e.id}>{e.title}</option>
+                ))}
+              </select>
+              <select
+                required
+                value={form.athlete_id}
+                onChange={(e) => setForm({ ...form, athlete_id: e.target.value })}
+                className="input"
+              >
+                <option value="">Athlete...</option>
+                {athletes.map((a) => (
+                  <option key={a.id} value={a.id}>{a.name}</option>
+                ))}
+              </select>
+              <input
+                required
+                value={form.title}
+                onChange={(e) => setForm({ ...form, title: e.target.value })}
+                placeholder="Plan title"
+                className="input"
+              />
+              <input
+                value={form.description}
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                placeholder="Description"
+                className="input"
+              />
+              <input
+                type="date"
+                required
+                value={form.start_date}
+                onChange={(e) => setForm({ ...form, start_date: e.target.value })}
+                className="input"
+              />
+              <input
+                type="date"
+                required
+                value={form.end_date}
+                onChange={(e) => setForm({ ...form, end_date: e.target.value })}
+                className="input"
+              />
             </div>
-            <button
-              type="submit"
-              className="bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition"
-            >
-              Create Plan
-            </button>
+            <button type="submit" className="btn-primary">Create Plan</button>
           </form>
         </div>
       )}
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         {plans.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-sm border p-8 text-center text-gray-500">
-            <p>No training plans yet.</p>
+          <div className="card p-12 text-center">
+            <p className="text-[14px] text-[#9CA3AF]">No training plans yet.</p>
           </div>
         ) : (
           plans.map((p) => (
-            <div key={p.id} className="bg-white rounded-xl shadow-sm border p-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <h3 className="text-lg font-semibold">{p.title}</h3>
-                  <p className="text-sm text-gray-500 mt-1">
-                    {p.athlete_name} &middot; {p.endeavour_title}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    {new Date(p.start_date).toLocaleDateString()} &rarr;{" "}
-                    {new Date(p.end_date).toLocaleDateString()}
-                  </p>
-                  {p.description && <p className="text-sm text-gray-600 mt-2">{p.description}</p>}
-                </div>
-                <button onClick={() => handleDelete(p.id)} className="text-sm text-red-500 hover:underline">
-                  Delete
-                </button>
+            <div key={p.id} className="card p-5 flex items-start justify-between">
+              <div>
+                <h3 className="text-[15px] font-semibold">{p.title}</h3>
+                <p className="text-[12px] text-[#9CA3AF] mt-1">
+                  {p.athlete_name} &middot; {p.endeavour_title}
+                </p>
+                <p className="text-[12px] text-[#9CA3AF] mt-0.5">
+                  {new Date(p.start_date).toLocaleDateString("en-US", { month: "short", day: "numeric" })} &rarr;{" "}
+                  {new Date(p.end_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                </p>
+                {p.description && <p className="text-[13px] text-[#6B6B6B] mt-2">{p.description}</p>}
               </div>
+              <button
+                onClick={() => handleDelete(p.id)}
+                className="text-[12px] text-[#9CA3AF] hover:text-[#EF4444] transition-colors"
+              >
+                Delete
+              </button>
             </div>
           ))
         )}

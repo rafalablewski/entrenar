@@ -122,198 +122,177 @@ export default function SessionsPage() {
     fetchData();
   }
 
-  const statusColors: Record<string, string> = {
-    scheduled: "bg-yellow-100 text-yellow-700",
-    completed: "bg-green-100 text-green-700",
-    skipped: "bg-gray-100 text-gray-500",
+  const statusStyle: Record<string, string> = {
+    scheduled: "bg-[#FFF7ED] text-[#D97706]",
+    completed: "bg-[#ECFDF5] text-[#059669]",
+    skipped: "bg-[#F5F5F5] text-[#9CA3AF]",
   };
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Training Sessions</h1>
+      <div className="flex items-center justify-between mb-8">
+        <div>
+          <h1 className="text-[28px] font-semibold tracking-tight">Sessions</h1>
+          <p className="text-[14px] text-[#9CA3AF] mt-1">
+            {sessions.length} session{sessions.length !== 1 ? "s" : ""}
+          </p>
+        </div>
         {plans.length > 0 && (
           <button
             onClick={() => setShowForm(!showForm)}
-            className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition"
+            className={showForm ? "btn-secondary" : "btn-primary"}
           >
-            {showForm ? "Cancel" : "+ Log Session"}
+            {showForm ? "Cancel" : "Log Session"}
           </button>
         )}
       </div>
 
       {plans.length === 0 && (
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-sm text-yellow-700 mb-6">
-          Create a training plan first before logging sessions.
+        <div className="card p-4 mb-6 border-[#FFF7ED]">
+          <p className="text-[13px] text-[#D97706]">
+            Create a training plan before logging sessions.
+          </p>
         </div>
       )}
 
       {showForm && (
-        <div className="bg-white rounded-xl shadow-sm border p-6 mb-6">
-          <h2 className="text-lg font-semibold mb-4">Log Training Session</h2>
+        <div className="card p-6 mb-6">
           <form onSubmit={handleCreate} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Training Plan</label>
-                <select
-                  required
-                  value={form.plan_id}
-                  onChange={(e) => setForm({ ...form, plan_id: e.target.value })}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                >
-                  <option value="">Select plan...</option>
-                  {plans.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.title} {p.athlete_name ? `(${p.athlete_name})` : ""}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
-                <input
-                  type="date"
-                  required
-                  value={form.date}
-                  onChange={(e) => setForm({ ...form, date: e.target.value })}
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Session Title</label>
-                <input
-                  required
-                  value={form.title}
-                  onChange={(e) => setForm({ ...form, title: e.target.value })}
-                  placeholder="e.g., Upper Body Strength, Tempo Run"
-                  className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-              </div>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-              <textarea
-                value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
-                rows={2}
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+            <div className="grid grid-cols-3 gap-3">
+              <select
+                required
+                value={form.plan_id}
+                onChange={(e) => setForm({ ...form, plan_id: e.target.value })}
+                className="input"
+              >
+                <option value="">Plan...</option>
+                {plans.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.title}{p.athlete_name ? ` (${p.athlete_name})` : ""}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="date"
+                required
+                value={form.date}
+                onChange={(e) => setForm({ ...form, date: e.target.value })}
+                className="input"
+              />
+              <input
+                required
+                value={form.title}
+                onChange={(e) => setForm({ ...form, title: e.target.value })}
+                placeholder="Session title"
+                className="input"
               />
             </div>
+            <textarea
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+              placeholder="Description"
+              rows={2}
+              className="input"
+            />
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="text-sm font-medium text-gray-700">Exercises</label>
-                <button type="button" onClick={addExercise} className="text-sm text-blue-600 hover:underline">
-                  + Add Exercise
+                <span className="text-[13px] font-medium text-[#6B6B6B]">Exercises</span>
+                <button type="button" onClick={addExercise} className="text-[12px] text-[#0071E3] hover:underline">
+                  + Add
                 </button>
               </div>
-              <div className="space-y-3">
-                {form.exercises.map((ex, idx) => (
-                  <div key={idx} className="grid grid-cols-2 md:grid-cols-6 gap-2 items-end bg-gray-50 p-3 rounded-lg">
-                    <div className="col-span-2 md:col-span-2">
-                      <label className="block text-xs text-gray-500 mb-1">Exercise</label>
-                      <input
-                        value={ex.name}
-                        onChange={(e) => updateExercise(idx, "name", e.target.value)}
-                        placeholder="Exercise name"
-                        className="w-full border rounded px-2 py-1.5 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-500 mb-1">Sets</label>
-                      <input
-                        type="number"
-                        value={ex.sets || ""}
-                        onChange={(e) => updateExercise(idx, "sets", parseInt(e.target.value) || 0)}
-                        className="w-full border rounded px-2 py-1.5 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-500 mb-1">Reps</label>
-                      <input
-                        value={ex.reps}
-                        onChange={(e) => updateExercise(idx, "reps", e.target.value)}
-                        placeholder="e.g., 8-10"
-                        className="w-full border rounded px-2 py-1.5 text-sm"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-500 mb-1">Weight/Duration</label>
-                      <input
-                        value={ex.weight || ex.duration}
-                        onChange={(e) => updateExercise(idx, "weight", e.target.value)}
-                        placeholder="e.g., 60kg, 30min"
-                        className="w-full border rounded px-2 py-1.5 text-sm"
-                      />
-                    </div>
-                    <div className="flex items-end">
-                      <button
-                        type="button"
-                        onClick={() => removeExercise(idx)}
-                        className="text-red-400 hover:text-red-600 text-sm py-1.5"
-                      >
-                        Remove
-                      </button>
-                    </div>
+              <div className="space-y-2">
+                {form.exercises.map((ex, i) => (
+                  <div key={i} className="grid grid-cols-6 gap-2 items-center bg-[#FAFAFA] rounded-xl p-3">
+                    <input
+                      value={ex.name}
+                      onChange={(e) => updateExercise(i, "name", e.target.value)}
+                      placeholder="Exercise"
+                      className="input !py-1.5 text-[13px] col-span-2"
+                    />
+                    <input
+                      type="number"
+                      value={ex.sets || ""}
+                      onChange={(e) => updateExercise(i, "sets", parseInt(e.target.value) || 0)}
+                      placeholder="Sets"
+                      className="input !py-1.5 text-[13px]"
+                    />
+                    <input
+                      value={ex.reps}
+                      onChange={(e) => updateExercise(i, "reps", e.target.value)}
+                      placeholder="Reps"
+                      className="input !py-1.5 text-[13px]"
+                    />
+                    <input
+                      value={ex.weight || ex.duration}
+                      onChange={(e) => updateExercise(i, "weight", e.target.value)}
+                      placeholder="Weight/Dur"
+                      className="input !py-1.5 text-[13px]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeExercise(i)}
+                      className="text-[12px] text-[#9CA3AF] hover:text-[#EF4444]"
+                    >
+                      Remove
+                    </button>
                   </div>
                 ))}
               </div>
             </div>
-            <button
-              type="submit"
-              className="bg-blue-600 text-white px-6 py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition"
-            >
-              Create Session
-            </button>
+            <button type="submit" className="btn-primary">Create Session</button>
           </form>
         </div>
       )}
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         {sessions.length === 0 ? (
-          <div className="bg-white rounded-xl shadow-sm border p-8 text-center text-gray-500">
-            <p>No training sessions yet.</p>
+          <div className="card p-12 text-center">
+            <p className="text-[14px] text-[#9CA3AF]">No sessions yet.</p>
           </div>
         ) : (
           sessions.map((s) => {
             const exercises: Exercise[] = JSON.parse(s.exercises || "[]");
             return (
-              <div key={s.id} className="bg-white rounded-xl shadow-sm border p-6">
-                <div className="flex items-start justify-between">
+              <div key={s.id} className="card p-5">
+                <div className="flex items-start justify-between mb-3">
                   <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-lg font-semibold">{s.title}</h3>
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${statusColors[s.status]}`}>
-                        {s.status}
-                      </span>
+                    <div className="flex items-center gap-2.5">
+                      <h3 className="text-[15px] font-semibold">{s.title}</h3>
+                      <span className={`badge ${statusStyle[s.status]}`}>{s.status}</span>
                     </div>
-                    <p className="text-sm text-gray-500 mt-1">
-                      {s.plan_title} &middot; {new Date(s.date).toLocaleDateString()}
+                    <p className="text-[12px] text-[#9CA3AF] mt-1">
+                      {s.plan_title} &middot;{" "}
+                      {new Date(s.date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
                     </p>
-                    {s.description && <p className="text-sm text-gray-600 mt-2">{s.description}</p>}
+                    {s.description && <p className="text-[13px] text-[#6B6B6B] mt-2">{s.description}</p>}
                   </div>
-                  <button onClick={() => handleDelete(s.id)} className="text-sm text-red-500 hover:underline">
+                  <button
+                    onClick={() => handleDelete(s.id)}
+                    className="text-[12px] text-[#9CA3AF] hover:text-[#EF4444] transition-colors"
+                  >
                     Delete
                   </button>
                 </div>
 
                 {exercises.length > 0 && (
-                  <div className="mt-4">
-                    <table className="w-full text-sm">
+                  <div className="bg-[#FAFAFA] rounded-xl p-4 mb-3">
+                    <table className="w-full text-[13px]">
                       <thead>
-                        <tr className="text-left text-gray-500 text-xs uppercase">
-                          <th className="pb-2">Exercise</th>
-                          <th className="pb-2">Sets</th>
-                          <th className="pb-2">Reps</th>
-                          <th className="pb-2">Weight/Duration</th>
+                        <tr className="text-[11px] text-[#9CA3AF] uppercase tracking-wider">
+                          <th className="text-left pb-2">Exercise</th>
+                          <th className="text-left pb-2">Sets</th>
+                          <th className="text-left pb-2">Reps</th>
+                          <th className="text-left pb-2">Load</th>
                         </tr>
                       </thead>
                       <tbody>
                         {exercises.map((ex, i) => (
-                          <tr key={i} className="border-t">
-                            <td className="py-2">{ex.name}</td>
-                            <td className="py-2">{ex.sets || "-"}</td>
-                            <td className="py-2">{ex.reps || "-"}</td>
-                            <td className="py-2">{ex.weight || ex.duration || "-"}</td>
+                          <tr key={i} className="border-t border-[rgba(0,0,0,0.04)]">
+                            <td className="py-1.5">{ex.name}</td>
+                            <td className="py-1.5 text-[#6B6B6B]">{ex.sets || "-"}</td>
+                            <td className="py-1.5 text-[#6B6B6B]">{ex.reps || "-"}</td>
+                            <td className="py-1.5 text-[#6B6B6B]">{ex.weight || ex.duration || "-"}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -322,19 +301,19 @@ export default function SessionsPage() {
                 )}
 
                 {s.notes && (
-                  <div className="mt-3 bg-gray-50 rounded-lg p-3">
-                    <p className="text-sm text-gray-600">
+                  <div className="bg-[#FAFAFA] rounded-xl px-4 py-2.5 mb-3">
+                    <p className="text-[12px] text-[#6B6B6B]">
                       <span className="font-medium">Notes:</span> {s.notes}
                     </p>
                   </div>
                 )}
 
                 {editingId === s.id ? (
-                  <div className="mt-4 flex items-center gap-3">
+                  <div className="flex items-center gap-3 pt-2">
                     <select
                       value={editStatus}
                       onChange={(e) => setEditStatus(e.target.value)}
-                      className="border rounded-lg px-3 py-1.5 text-sm"
+                      className="input !w-auto !py-1.5 text-[13px]"
                     >
                       <option value="scheduled">Scheduled</option>
                       <option value="completed">Completed</option>
@@ -343,32 +322,27 @@ export default function SessionsPage() {
                     <input
                       value={editNotes}
                       onChange={(e) => setEditNotes(e.target.value)}
-                      placeholder="Add notes..."
-                      className="flex-1 border rounded-lg px-3 py-1.5 text-sm"
+                      placeholder="Notes..."
+                      className="input !py-1.5 text-[13px] flex-1"
                     />
-                    <button
-                      onClick={() => handleUpdateStatus(s)}
-                      className="bg-green-600 text-white px-4 py-1.5 rounded-lg text-sm"
-                    >
+                    <button onClick={() => handleUpdateStatus(s)} className="btn-primary !py-1.5 text-[13px]">
                       Save
                     </button>
-                    <button onClick={() => setEditingId(null)} className="text-gray-500 text-sm">
+                    <button onClick={() => setEditingId(null)} className="btn-secondary !py-1.5 text-[13px]">
                       Cancel
                     </button>
                   </div>
                 ) : (
-                  <div className="mt-4">
-                    <button
-                      onClick={() => {
-                        setEditingId(s.id);
-                        setEditStatus(s.status);
-                        setEditNotes(s.notes);
-                      }}
-                      className="text-sm text-blue-600 hover:underline"
-                    >
-                      Update Status
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => {
+                      setEditingId(s.id);
+                      setEditStatus(s.status);
+                      setEditNotes(s.notes);
+                    }}
+                    className="text-[12px] text-[#0071E3] hover:underline pt-1"
+                  >
+                    Update Status
+                  </button>
                 )}
               </div>
             );

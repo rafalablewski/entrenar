@@ -34,47 +34,49 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-600 to-indigo-800 px-4">
-      <div className="bg-white rounded-xl shadow-xl p-8 w-full max-w-md">
-        <h1 className="text-2xl font-bold text-center mb-6">Log in to Entrenar</h1>
+    <div className="min-h-screen flex items-center justify-center bg-[#FAFAFA] px-4">
+      <div className="w-full max-w-sm">
+        <div className="text-center mb-8">
+          <Link href="/" className="text-[15px] font-semibold tracking-tight text-[#1A1A1A]">
+            entrenar
+          </Link>
+          <h1 className="text-[24px] font-semibold tracking-tight mt-6 mb-2">Welcome back</h1>
+          <p className="text-[14px] text-[#6B6B6B]">Sign in to your account</p>
+        </div>
         {error && (
-          <div className="bg-red-50 text-red-600 px-4 py-2 rounded mb-4 text-sm">
+          <div className="bg-red-50 text-red-600 px-4 py-2.5 rounded-xl mb-4 text-[13px]">
             {error}
           </div>
         )}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-            />
-          </div>
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <input
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="Email"
+            className="input"
+          />
+          <input
+            type="password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            placeholder="Password"
+            className="input"
+          />
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white py-2 rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-50"
+            className="btn-primary w-full !py-2.5 disabled:opacity-50"
           >
-            {loading ? "Logging in..." : "Log In"}
+            {loading ? "Signing in..." : "Sign In"}
           </button>
         </form>
-        <p className="text-center text-sm text-gray-500 mt-4">
-          Don&apos;t have an account?{" "}
-          <Link href="/register" className="text-blue-600 hover:underline">
-            Sign up
+        <p className="text-center text-[13px] text-[#9CA3AF] mt-6">
+          No account?{" "}
+          <Link href="/register" className="text-[#0071E3] hover:underline">
+            Create one
           </Link>
         </p>
       </div>
