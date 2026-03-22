@@ -7,29 +7,23 @@ export async function GET() {
   const user = await getSession();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const db = getDb();
+  const sql = getDb();
 
   if (user.role === "trainer") {
-    const athletes = db
-      .prepare(
-        `SELECT a.id, a.user_id, a.trainer_id, a.sport, a.notes, a.created_at,
-                u.name, u.email
-         FROM athletes a JOIN users u ON a.user_id = u.id
-         WHERE a.trainer_id = ?
-         ORDER BY u.name`
-      )
-      .all(user.id);
+    const athletes = await sql`
+      SELECT a.id, a.user_id, a.trainer_id, a.sport, a.notes, a.created_at,
+             u.name, u.email
+      FROM athletes a JOIN users u ON a.user_id = u.id
+      WHERE a.trainer_id = ${user.id}
+      ORDER BY u.name`;
     return NextResponse.json({ athletes });
   } else {
     // Athlete sees own profile
-    const athlete = db
-      .prepare(
-        `SELECT a.id, a.user_id, a.trainer_id, a.sport, a.notes, a.created_at,
-                u.name, u.email
-         FROM athletes a JOIN users u ON a.user_id = u.id
-         WHERE a.user_id = ?`
-      )
-      .all(user.id);
+    const athlete = await sql`
+      SELECT a.id, a.user_id, a.trainer_id, a.sport, a.notes, a.created_at,
+             u.name, u.email
+      FROM athletes a JOIN users u ON a.user_id = u.id
+      WHERE a.user_id = ${user.id}`;
     return NextResponse.json({ athletes: athlete });
   }
 }
@@ -45,27 +39,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Name and email are required" }, { status: 400 });
   }
 
-  const db = getDb();
+  const sql = getDb();
 
   // Check if user already exists
-  let athleteUser = db.prepare("SELECT id FROM users WHERE email = ?").get(email) as { id: string } | undefined;
+  const existingUsers = await sql`SELECT id FROM users WHERE email = ${email}`;
+  let athleteUser = existingUsers[0] as { id: string } | undefined;
 
   if (!athleteUser) {
     // Create a placeholder user account for the athlete
     const id = uuidv4();
     const bcrypt = await import("bcryptjs");
     const tempHash = await bcrypt.hash("changeme123", 10);
-    db.prepare("INSERT INTO users (id, email, name, password_hash, role) VALUES (?, ?, ?, ?, 'athlete')").run(
-      id, email, name, tempHash
-    );
+    await sql`INSERT INTO users (id, email, name, password_hash, role) VALUES (${id}, ${email}, ${name}, ${tempHash}, 'athlete')`;
     athleteUser = { id };
   }
 
   const athleteId = uuidv4();
   try {
-    db.prepare("INSERT INTO athletes (id, user_id, trainer_id, sport, notes) VALUES (?, ?, ?, ?, ?)").run(
-      athleteId, athleteUser.id, user.id, sport || "", notes || ""
-    );
+    await sql`INSERT INTO athletes (id, user_id, trainer_id, sport, notes) VALUES (${athleteId}, ${athleteUser.id}, ${user.id}, ${sport || ""}, ${notes || ""})`;
   } catch {
     return NextResponse.json({ error: "This athlete is already assigned to a trainer" }, { status: 400 });
   }
@@ -78,8 +69,8 @@ export async function PUT(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id, sport, notes } = await req.json();
-  const db = getDb();
+  const sql = getDb();
 
-  db.prepare("UPDATE athletes SET sport = ?, notes = ? WHERE id = ?").run(sport || "", notes || "", id);
+  await sql`UPDATE athletes SET sport = ${sport || ""}, notes = ${notes || ""} WHERE id = ${id}`;
   return NextResponse.json({ success: true });
 }
