@@ -3,25 +3,24 @@ import { getDb } from "@/lib/db";
 import Link from "next/link";
 import { allExercises } from "@/lib/exercises";
 
-interface CountRow {
-  count: number;
-}
-
 export default async function DashboardPage() {
   const user = await getSession();
   if (!user) return null;
 
-  const db = getDb();
+  const sql = getDb();
   const exerciseCount = allExercises.length;
 
   if (user.role === "trainer") {
-    const athleteCount = (db.prepare("SELECT COUNT(*) as count FROM athletes WHERE trainer_id = ?").get(user.id) as CountRow).count;
-    const endeavourCount = (db.prepare("SELECT COUNT(*) as count FROM endeavours WHERE trainer_id = ?").get(user.id) as CountRow).count;
-    const activeEndeavours = (db.prepare("SELECT COUNT(*) as count FROM endeavours WHERE trainer_id = ? AND status = 'active'").get(user.id) as CountRow).count;
+    const athleteRows = await sql`SELECT COUNT(*) as count FROM athletes WHERE trainer_id = ${user.id}`;
+    const athleteCount = Number(athleteRows[0].count);
 
-    const upcomingEndeavours = db.prepare(
-      "SELECT * FROM endeavours WHERE trainer_id = ? AND status IN ('planning', 'active') ORDER BY target_date LIMIT 5"
-    ).all(user.id) as Array<{ id: string; title: string; target_date: string; status: string }>;
+    const endeavourRows = await sql`SELECT COUNT(*) as count FROM endeavours WHERE trainer_id = ${user.id}`;
+    const endeavourCount = Number(endeavourRows[0].count);
+
+    const activeRows = await sql`SELECT COUNT(*) as count FROM endeavours WHERE trainer_id = ${user.id} AND status = 'active'`;
+    const activeEndeavours = Number(activeRows[0].count);
+
+    const upcomingEndeavours = await sql`SELECT * FROM endeavours WHERE trainer_id = ${user.id} AND status IN ('planning', 'active') ORDER BY target_date LIMIT 5` as Array<{ id: string; title: string; target_date: string; status: string }>;
 
     return (
       <div>
@@ -102,28 +101,27 @@ export default async function DashboardPage() {
   }
 
   // Athlete dashboard
-  const athlete = db.prepare("SELECT id FROM athletes WHERE user_id = ?").get(user.id) as { id: string } | undefined;
+  const athleteRows = await sql`SELECT id FROM athletes WHERE user_id = ${user.id}`;
+  const athlete = athleteRows[0] as { id: string } | undefined;
 
-  const planCount = athlete
-    ? (db.prepare("SELECT COUNT(*) as count FROM training_plans WHERE athlete_id = ?").get(athlete.id) as CountRow).count
-    : 0;
+  let planCount = 0;
+  let sessionCount = 0;
+  let upcomingSessions: Array<{ id: string; title: string; date: string; plan_title: string }> = [];
 
-  const sessionCount = athlete
-    ? (db.prepare(
-        `SELECT COUNT(*) as count FROM training_sessions ts
+  if (athlete) {
+    const planRows = await sql`SELECT COUNT(*) as count FROM training_plans WHERE athlete_id = ${athlete.id}`;
+    planCount = Number(planRows[0].count);
+
+    const sessionRows = await sql`SELECT COUNT(*) as count FROM training_sessions ts
          JOIN training_plans tp ON ts.plan_id = tp.id
-         WHERE tp.athlete_id = ? AND ts.status = 'completed'`
-      ).get(athlete.id) as CountRow).count
-    : 0;
+         WHERE tp.athlete_id = ${athlete.id} AND ts.status = 'completed'`;
+    sessionCount = Number(sessionRows[0].count);
 
-  const upcomingSessions = athlete
-    ? db.prepare(
-        `SELECT ts.*, tp.title as plan_title FROM training_sessions ts
+    upcomingSessions = await sql`SELECT ts.*, tp.title as plan_title FROM training_sessions ts
          JOIN training_plans tp ON ts.plan_id = tp.id
-         WHERE tp.athlete_id = ? AND ts.status = 'scheduled'
-         ORDER BY ts.date LIMIT 5`
-      ).all(athlete.id) as Array<{ id: string; title: string; date: string; plan_title: string }>
-    : [];
+         WHERE tp.athlete_id = ${athlete.id} AND ts.status = 'scheduled'
+         ORDER BY ts.date LIMIT 5` as Array<{ id: string; title: string; date: string; plan_title: string }>;
+  }
 
   return (
     <div>

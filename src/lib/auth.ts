@@ -6,60 +6,34 @@ import { v4 as uuidv4 } from "uuid";
 
 const SESSION_COOKIE = "entrenar_session";
 
-interface SessionRow {
-  user_id: string;
-}
-
 export async function getSession(): Promise<User | null> {
   const cookieStore = await cookies();
   const sessionId = cookieStore.get(SESSION_COOKIE)?.value;
   if (!sessionId) return null;
 
-  const db = getDb();
+  const sql = getDb();
 
-  // Ensure session table exists
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS sessions (
-      id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL REFERENCES users(id),
-      created_at TEXT DEFAULT (datetime('now'))
-    )
-  `);
+  const sessions = await sql`SELECT user_id FROM sessions WHERE id = ${sessionId}`;
+  if (sessions.length === 0) return null;
 
-  const session = db
-    .prepare("SELECT user_id FROM sessions WHERE id = ?")
-    .get(sessionId) as SessionRow | undefined;
-  if (!session) return null;
+  const users = await sql`SELECT id, email, name, role, created_at FROM users WHERE id = ${sessions[0].user_id}`;
+  if (users.length === 0) return null;
 
-  const user = db
-    .prepare("SELECT id, email, name, role, created_at FROM users WHERE id = ?")
-    .get(session.user_id) as User | undefined;
-
-  return user || null;
+  return users[0] as unknown as User;
 }
 
 export async function createSession(userId: string): Promise<string> {
-  const db = getDb();
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS sessions (
-      id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL REFERENCES users(id),
-      created_at TEXT DEFAULT (datetime('now'))
-    )
-  `);
-
+  const sql = getDb();
   const sessionId = uuidv4();
-  db.prepare("INSERT INTO sessions (id, user_id) VALUES (?, ?)").run(
-    sessionId,
-    userId
-  );
+
+  await sql`INSERT INTO sessions (id, user_id) VALUES (${sessionId}, ${userId})`;
 
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE, sessionId, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
-    maxAge: 60 * 60 * 24 * 30, // 30 days
+    maxAge: 60 * 60 * 24 * 30,
     path: "/",
   });
 
@@ -70,8 +44,8 @@ export async function destroySession(): Promise<void> {
   const cookieStore = await cookies();
   const sessionId = cookieStore.get(SESSION_COOKIE)?.value;
   if (sessionId) {
-    const db = getDb();
-    db.prepare("DELETE FROM sessions WHERE id = ?").run(sessionId);
+    const sql = getDb();
+    await sql`DELETE FROM sessions WHERE id = ${sessionId}`;
     cookieStore.delete(SESSION_COOKIE);
   }
 }
@@ -82,13 +56,11 @@ export async function registerUser(
   name: string,
   role: "trainer" | "athlete"
 ): Promise<User> {
-  const db = getDb();
+  const sql = getDb();
   const id = uuidv4();
   const passwordHash = await bcrypt.hash(password, 10);
 
-  db.prepare(
-    "INSERT INTO users (id, email, name, password_hash, role) VALUES (?, ?, ?, ?, ?)"
-  ).run(id, email, name, passwordHash, role);
+  await sql`INSERT INTO users (id, email, name, password_hash, role) VALUES (${id}, ${email}, ${name}, ${passwordHash}, ${role})`;
 
   return { id, email, name, role, created_at: new Date().toISOString() };
 }
@@ -97,15 +69,20 @@ export async function loginUser(
   email: string,
   password: string
 ): Promise<User | null> {
-  const db = getDb();
-  const user = db.prepare("SELECT * FROM users WHERE email = ?").get(email) as
-    | (User & { password_hash: string })
-    | undefined;
+  const sql = getDb();
+  const users = await sql`SELECT * FROM users WHERE email = ${email}`;
 
-  if (!user) return null;
+  if (users.length === 0) return null;
 
-  const valid = await bcrypt.compare(password, user.password_hash);
+  const user = users[0];
+  const valid = await bcrypt.compare(password, user.password_hash as string);
   if (!valid) return null;
 
-  return { id: user.id, email: user.email, name: user.name, role: user.role, created_at: user.created_at };
+  return {
+    id: user.id as string,
+    email: user.email as string,
+    name: user.name as string,
+    role: user.role as "trainer" | "athlete",
+    created_at: user.created_at as string,
+  };
 }

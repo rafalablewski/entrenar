@@ -7,34 +7,38 @@ export async function GET(req: NextRequest) {
   const user = await getSession();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const db = getDb();
+  const sql = getDb();
   const planId = req.nextUrl.searchParams.get("plan_id");
 
-  let query = `
-    SELECT ts.*, tp.title as plan_title
-    FROM training_sessions ts
-    JOIN training_plans tp ON ts.plan_id = tp.id
-    JOIN endeavours e ON tp.endeavour_id = e.id
-  `;
-  const params: string[] = [];
+  let sessions;
 
   if (user.role === "trainer") {
-    query += " WHERE e.trainer_id = ?";
-    params.push(user.id);
+    sessions = await sql`
+      SELECT ts.*, tp.title as plan_title
+      FROM training_sessions ts
+      JOIN training_plans tp ON ts.plan_id = tp.id
+      JOIN endeavours e ON tp.endeavour_id = e.id
+      WHERE e.trainer_id = ${user.id}
+      ORDER BY ts.date DESC
+    `;
   } else {
-    const athlete = db.prepare("SELECT id FROM athletes WHERE user_id = ?").get(user.id) as { id: string } | undefined;
-    if (!athlete) return NextResponse.json({ sessions: [] });
-    query += " WHERE tp.athlete_id = ?";
-    params.push(athlete.id);
+    const athletes = await sql`SELECT id FROM athletes WHERE user_id = ${user.id}`;
+    if (athletes.length === 0) return NextResponse.json({ sessions: [] });
+    const athlete = athletes[0];
+
+    sessions = await sql`
+      SELECT ts.*, tp.title as plan_title
+      FROM training_sessions ts
+      JOIN training_plans tp ON ts.plan_id = tp.id
+      WHERE tp.athlete_id = ${athlete.id}
+      ORDER BY ts.date DESC
+    `;
   }
 
   if (planId) {
-    query += " AND ts.plan_id = ?";
-    params.push(planId);
+    sessions = sessions.filter((s: any) => s.plan_id === planId);
   }
 
-  query += " ORDER BY ts.date DESC";
-  const sessions = db.prepare(query).all(...params);
   return NextResponse.json({ sessions });
 }
 
@@ -47,11 +51,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Plan, date, and title are required" }, { status: 400 });
   }
 
-  const db = getDb();
+  const sql = getDb();
   const id = uuidv4();
-  db.prepare(
-    "INSERT INTO training_sessions (id, plan_id, date, title, description, exercises) VALUES (?, ?, ?, ?, ?, ?)"
-  ).run(id, plan_id, date, title, description || "", JSON.stringify(exercises || []));
+  await sql`
+    INSERT INTO training_sessions (id, plan_id, date, title, description, exercises)
+    VALUES (${id}, ${plan_id}, ${date}, ${title}, ${description || ""}, ${JSON.stringify(exercises || [])})
+  `;
 
   return NextResponse.json({ id });
 }
@@ -61,18 +66,14 @@ export async function PUT(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id, title, description, exercises, status, notes } = await req.json();
-  const db = getDb();
+  const sql = getDb();
 
-  db.prepare(
-    "UPDATE training_sessions SET title = ?, description = ?, exercises = ?, status = ?, notes = ? WHERE id = ?"
-  ).run(
-    title,
-    description || "",
-    JSON.stringify(exercises || []),
-    status || "scheduled",
-    notes || "",
-    id
-  );
+  await sql`
+    UPDATE training_sessions
+    SET title = ${title}, description = ${description || ""}, exercises = ${JSON.stringify(exercises || [])},
+        status = ${status || "scheduled"}, notes = ${notes || ""}
+    WHERE id = ${id}
+  `;
 
   return NextResponse.json({ success: true });
 }
@@ -82,7 +83,7 @@ export async function DELETE(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id } = await req.json();
-  const db = getDb();
-  db.prepare("DELETE FROM training_sessions WHERE id = ?").run(id);
+  const sql = getDb();
+  await sql`DELETE FROM training_sessions WHERE id = ${id}`;
   return NextResponse.json({ success: true });
 }

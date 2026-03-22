@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { loginUser, registerUser, createSession, destroySession } from "@/lib/auth";
-import { getDb } from "@/lib/db";
+import { getDb, initializeDb } from "@/lib/db";
 import { v4 as uuidv4 } from "uuid";
 
 export async function POST(req: NextRequest) {
+  await initializeDb();
+
   const body = await req.json();
   const { action } = body;
 
@@ -24,9 +26,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "All fields are required" }, { status: 400 });
     }
 
-    const db = getDb();
-    const existing = db.prepare("SELECT id FROM users WHERE email = ?").get(email);
-    if (existing) {
+    const sql = getDb();
+    const existing = await sql`SELECT id FROM users WHERE email = ${email}`;
+    if (existing.length) {
       return NextResponse.json({ error: "Email already registered" }, { status: 400 });
     }
 
@@ -34,8 +36,8 @@ export async function POST(req: NextRequest) {
       if (!trainerEmail) {
         return NextResponse.json({ error: "Trainer email is required for athletes" }, { status: 400 });
       }
-      const trainer = db.prepare("SELECT id FROM users WHERE email = ? AND role = 'trainer'").get(trainerEmail) as { id: string } | undefined;
-      if (!trainer) {
+      const trainers = await sql`SELECT id FROM users WHERE email = ${trainerEmail} AND role = 'trainer'`;
+      if (!trainers.length) {
         return NextResponse.json({ error: "Trainer not found. Ask your trainer to register first." }, { status: 400 });
       }
     }
@@ -44,12 +46,10 @@ export async function POST(req: NextRequest) {
       const user = await registerUser(email, password, name, role);
 
       if (role === "athlete" && trainerEmail) {
-        const trainer = db.prepare("SELECT id FROM users WHERE email = ? AND role = 'trainer'").get(trainerEmail) as { id: string };
-        db.prepare("INSERT INTO athletes (id, user_id, trainer_id) VALUES (?, ?, ?)").run(
-          uuidv4(),
-          user.id,
-          trainer.id
-        );
+        const trainers = await sql`SELECT id FROM users WHERE email = ${trainerEmail} AND role = 'trainer'`;
+        const trainer = trainers[0] as { id: string };
+        const id = uuidv4();
+        await sql`INSERT INTO athletes (id, user_id, trainer_id) VALUES (${id}, ${user.id}, ${trainer.id})`;
       }
 
       await createSession(user.id);
