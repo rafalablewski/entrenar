@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Entrenar - Trainer & Athlete Platform",
-  description: "Manage training plans, track progress, and prepare for your next endeavour",
+  title: "ENTRENAR - Next-Gen Athletic Intelligence",
+  description: "The future of athletic training. Interactive anatomy. Precision programming. Zero compromise.",
 };
 
 export default function RootLayout({
@@ -13,7 +13,8 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-gray-50 text-gray-900 min-h-screen antialiased">
+      <body className="min-h-screen antialiased">
+        <div className="ambient-bg" />
         {children}
       </body>
     </html>

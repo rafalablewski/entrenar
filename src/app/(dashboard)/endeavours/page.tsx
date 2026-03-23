@@ -55,19 +55,12 @@ export default function EndeavoursPage() {
     setEditForm({ title: e.title, description: e.description, target_date: e.target_date, status: e.status, athlete_ids: e.athletes?.map((a) => a.id) || [] });
   }
 
-  const statusStyle: Record<string, string> = {
-    planning: "bg-[#FFF7ED] text-[#D97706]",
-    active: "bg-[#ECFDF5] text-[#059669]",
-    completed: "bg-[#EBF5FF] text-[#0071E3]",
-    cancelled: "bg-[#F5F5F5] text-[#9CA3AF]",
-  };
-
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-[28px] font-semibold tracking-tight">Endeavours</h1>
-          <p className="text-[14px] text-[#9CA3AF] mt-1">Goals and competitions</p>
+          <h1 className="text-[32px] font-bold tracking-[-0.03em]" style={{ color: "rgba(255,255,255,0.95)" }}>Endeavours</h1>
+          <p className="text-[13px] mt-1" style={{ color: "rgba(255,255,255,0.3)" }}>Goals and competitions</p>
         </div>
         <button onClick={() => setShowForm(!showForm)} className={showForm ? "btn-secondary" : "btn-primary"}>
           {showForm ? "Cancel" : "New Endeavour"}
@@ -86,7 +79,12 @@ export default function EndeavoursPage() {
               <div className="flex flex-wrap gap-2">
                 {athletes.map((a) => (
                   <button key={a.id} type="button" onClick={() => setForm({ ...form, athlete_ids: toggleAthlete(form.athlete_ids, a.id) })}
-                    className={`px-3 py-1 rounded-full text-[12px] font-medium border transition-all ${form.athlete_ids.includes(a.id) ? "border-[#0071E3] bg-[#EBF5FF] text-[#0071E3]" : "border-[rgba(0,0,0,0.08)] text-[#6B6B6B] hover:border-[rgba(0,0,0,0.2)]"}`}>
+                    className="px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-all"
+                    style={{
+                      background: form.athlete_ids.includes(a.id) ? "rgba(0,240,255,0.08)" : "rgba(255,255,255,0.03)",
+                      border: form.athlete_ids.includes(a.id) ? "1px solid rgba(0,240,255,0.25)" : "1px solid rgba(255,255,255,0.06)",
+                      color: form.athlete_ids.includes(a.id) ? "#00F0FF" : "rgba(255,255,255,0.35)",
+                    }}>
                     {a.name}
                   </button>
                 ))}
@@ -99,11 +97,11 @@ export default function EndeavoursPage() {
 
       <div className="space-y-3">
         {endeavours.length === 0 ? (
-          <div className="card p-12 text-center">
-            <p className="text-[14px] text-[#9CA3AF]">No endeavours yet.</p>
+          <div className="card p-16 text-center">
+            <p className="text-[14px]" style={{ color: "rgba(255,255,255,0.3)" }}>No endeavours yet.</p>
           </div>
         ) : endeavours.map((e) => (
-          <div key={e.id} className="card p-5">
+          <div key={e.id} className="card p-6">
             {editingId === e.id ? (
               <form onSubmit={handleUpdate} className="space-y-3">
                 <div className="grid grid-cols-3 gap-3">
@@ -121,7 +119,12 @@ export default function EndeavoursPage() {
                   <div className="flex flex-wrap gap-2">
                     {athletes.map((a) => (
                       <button key={a.id} type="button" onClick={() => setEditForm({ ...editForm, athlete_ids: toggleAthlete(editForm.athlete_ids, a.id) })}
-                        className={`px-3 py-1 rounded-full text-[12px] font-medium border transition-all ${editForm.athlete_ids.includes(a.id) ? "border-[#0071E3] bg-[#EBF5FF] text-[#0071E3]" : "border-[rgba(0,0,0,0.08)] text-[#6B6B6B]"}`}>
+                        className="px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-all"
+                        style={{
+                          background: editForm.athlete_ids.includes(a.id) ? "rgba(0,240,255,0.08)" : "rgba(255,255,255,0.03)",
+                          border: editForm.athlete_ids.includes(a.id) ? "1px solid rgba(0,240,255,0.25)" : "1px solid rgba(255,255,255,0.06)",
+                          color: editForm.athlete_ids.includes(a.id) ? "#00F0FF" : "rgba(255,255,255,0.35)",
+                        }}>
                         {a.name}
                       </button>
                     ))}
@@ -136,24 +139,33 @@ export default function EndeavoursPage() {
               <div className="flex items-start justify-between">
                 <div>
                   <div className="flex items-center gap-2.5">
-                    <h3 className="text-[15px] font-semibold">{e.title}</h3>
-                    <span className={`badge ${statusStyle[e.status]}`}>{e.status}</span>
+                    <h3 className="text-[16px] font-bold" style={{ color: "rgba(255,255,255,0.9)" }}>{e.title}</h3>
+                    <span className={`badge badge-${e.status}`}>{e.status}</span>
                   </div>
-                  <p className="text-[12px] text-[#9CA3AF] mt-1">
+                  <p className="text-[12px] mt-1.5" style={{ color: "rgba(255,255,255,0.3)" }}>
                     {new Date(e.target_date).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
                   </p>
-                  {e.description && <p className="text-[13px] text-[#6B6B6B] mt-2">{e.description}</p>}
+                  {e.description && <p className="text-[13px] mt-2" style={{ color: "rgba(255,255,255,0.45)" }}>{e.description}</p>}
                   {e.athletes && e.athletes.length > 0 && (
                     <div className="flex flex-wrap gap-1.5 mt-3">
                       {e.athletes.map((a) => (
-                        <span key={a.id} className="badge bg-[#F5F5F5] text-[#6B6B6B]">{a.name}</span>
+                        <span key={a.id} className="text-[10px] font-medium px-2.5 py-1 rounded-lg"
+                          style={{ background: "rgba(255,255,255,0.04)", color: "rgba(255,255,255,0.5)", border: "1px solid rgba(255,255,255,0.06)" }}>
+                          {a.name}
+                        </span>
                       ))}
                     </div>
                   )}
                 </div>
                 <div className="flex gap-3">
-                  <button onClick={() => startEdit(e)} className="text-[12px] text-[#9CA3AF] hover:text-[#0071E3] transition-colors">Edit</button>
-                  <button onClick={() => handleDelete(e.id)} className="text-[12px] text-[#9CA3AF] hover:text-[#EF4444] transition-colors">Delete</button>
+                  <button onClick={() => startEdit(e)} className="text-[12px] font-medium transition-colors" style={{ color: "rgba(255,255,255,0.25)" }}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = "#00F0FF")} onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.25)")}>
+                    Edit
+                  </button>
+                  <button onClick={() => handleDelete(e.id)} className="text-[12px] font-medium transition-colors" style={{ color: "rgba(255,255,255,0.25)" }}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = "#FF3B5C")} onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.25)")}>
+                    Delete
+                  </button>
                 </div>
               </div>
             )}
