@@ -1,114 +1,471 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState, useMemo, useCallback } from "react";
+import { Canvas, useFrame, useThree, ThreeEvent } from "@react-three/fiber";
+import { OrbitControls } from "@react-three/drei";
+import * as THREE from "three";
 
-interface MuscleZone {
+// ═══════════════════════════════════════════
+// MUSCLE DATA - 3D positions and geometry
+// ═══════════════════════════════════════════
+interface Muscle3D {
   id: string;
-  label: string;
+  name: string;
   scientificName: string;
-  path: string;
   layer: "superficial" | "deep";
-  side: "front" | "back";
+  side: "front" | "back" | "both";
   color: string;
+  position: [number, number, number];
+  scale: [number, number, number];
+  rotation?: [number, number, number];
+  shape: "box" | "sphere" | "capsule" | "cylinder";
 }
 
-const muscleZones: MuscleZone[] = [
-  // FRONT VIEW - Superficial
-  { id: "pectoralis-major", label: "Pectoralis Major", scientificName: "Pectoralis major", path: "M 85 95 Q 100 88 115 95 L 118 115 Q 105 120 100 118 Q 95 120 82 115 Z", layer: "superficial", side: "front", color: "#FF4466" },
-  { id: "anterior-deltoid", label: "Anterior Deltoid", scientificName: "Deltoideus – pars clavicularis", path: "M 72 85 Q 68 78 72 72 Q 80 68 85 72 L 85 95 Q 78 92 72 85 Z", layer: "superficial", side: "front", color: "#FF6B35" },
-  { id: "anterior-deltoid-r", label: "Anterior Deltoid", scientificName: "Deltoideus – pars clavicularis", path: "M 128 85 Q 132 78 128 72 Q 120 68 115 72 L 115 95 Q 122 92 128 85 Z", layer: "superficial", side: "front", color: "#FF6B35" },
-  { id: "biceps-l", label: "Biceps Brachii", scientificName: "Biceps brachii", path: "M 68 95 Q 64 92 62 100 L 60 125 Q 62 128 66 128 L 70 125 Q 72 120 72 100 Z", layer: "superficial", side: "front", color: "#00F0FF" },
-  { id: "biceps-r", label: "Biceps Brachii", scientificName: "Biceps brachii", path: "M 132 95 Q 136 92 138 100 L 140 125 Q 138 128 134 128 L 130 125 Q 128 120 128 100 Z", layer: "superficial", side: "front", color: "#00F0FF" },
-  { id: "rectus-abdominis", label: "Rectus Abdominis", scientificName: "Rectus abdominis", path: "M 92 118 L 108 118 L 108 165 Q 105 168 100 168 Q 95 168 92 165 Z", layer: "superficial", side: "front", color: "#A855F7" },
-  { id: "external-oblique", label: "External Oblique", scientificName: "Obliquus externus abdominis", path: "M 82 115 L 92 118 L 92 160 Q 85 165 80 160 L 80 120 Z", layer: "superficial", side: "front", color: "#D946EF" },
-  { id: "external-oblique-r", label: "External Oblique", scientificName: "Obliquus externus abdominis", path: "M 118 115 L 108 118 L 108 160 Q 115 165 120 160 L 120 120 Z", layer: "superficial", side: "front", color: "#D946EF" },
-  { id: "quadriceps-l", label: "Quadriceps", scientificName: "Quadriceps femoris", path: "M 82 170 Q 78 175 76 185 L 74 220 Q 76 225 82 228 L 90 225 Q 95 220 94 210 L 95 185 Q 95 175 92 170 Z", layer: "superficial", side: "front", color: "#00FF88" },
-  { id: "quadriceps-r", label: "Quadriceps", scientificName: "Quadriceps femoris", path: "M 118 170 Q 122 175 124 185 L 126 220 Q 124 225 118 228 L 110 225 Q 105 220 106 210 L 105 185 Q 105 175 108 170 Z", layer: "superficial", side: "front", color: "#00FF88" },
-  { id: "tibialis-anterior-l", label: "Tibialis Anterior", scientificName: "Tibialis anterior", path: "M 80 232 Q 78 235 77 250 L 78 275 Q 80 278 83 278 L 86 275 Q 87 260 86 245 Q 86 238 84 232 Z", layer: "superficial", side: "front", color: "#4D7CFF" },
-  { id: "tibialis-anterior-r", label: "Tibialis Anterior", scientificName: "Tibialis anterior", path: "M 120 232 Q 122 235 123 250 L 122 275 Q 120 278 117 278 L 114 275 Q 113 260 114 245 Q 114 238 116 232 Z", layer: "superficial", side: "front", color: "#4D7CFF" },
+const muscles3D: Muscle3D[] = [
+  // === FRONT SUPERFICIAL ===
+  // Pectorals
+  { id: "pec-major-l", name: "Pectoralis Major", scientificName: "Pectoralis major – pars sternocostalis", layer: "superficial", side: "front", color: "#FF4466", position: [-0.22, 0.95, 0.18], scale: [0.32, 0.22, 0.1], shape: "box" },
+  { id: "pec-major-r", name: "Pectoralis Major", scientificName: "Pectoralis major – pars sternocostalis", layer: "superficial", side: "front", color: "#FF4466", position: [0.22, 0.95, 0.18], scale: [0.32, 0.22, 0.1], shape: "box" },
+  // Anterior Deltoids
+  { id: "ant-delt-l", name: "Anterior Deltoid", scientificName: "Deltoideus – pars clavicularis", layer: "superficial", side: "front", color: "#FF6B35", position: [-0.48, 1.08, 0.08], scale: [0.14, 0.16, 0.14], shape: "sphere" },
+  { id: "ant-delt-r", name: "Anterior Deltoid", scientificName: "Deltoideus – pars clavicularis", layer: "superficial", side: "front", color: "#FF6B35", position: [0.48, 1.08, 0.08], scale: [0.14, 0.16, 0.14], shape: "sphere" },
+  // Biceps
+  { id: "bicep-l", name: "Biceps Brachii", scientificName: "Biceps brachii", layer: "superficial", side: "front", color: "#00F0FF", position: [-0.55, 0.72, 0.06], scale: [0.08, 0.22, 0.09], shape: "capsule" },
+  { id: "bicep-r", name: "Biceps Brachii", scientificName: "Biceps brachii", layer: "superficial", side: "front", color: "#00F0FF", position: [0.55, 0.72, 0.06], scale: [0.08, 0.22, 0.09], shape: "capsule" },
+  // Rectus Abdominis
+  { id: "rectus-abs", name: "Rectus Abdominis", scientificName: "Rectus abdominis", layer: "superficial", side: "front", color: "#A855F7", position: [0, 0.58, 0.15], scale: [0.18, 0.38, 0.06], shape: "box" },
+  // Obliques
+  { id: "oblique-l", name: "External Oblique", scientificName: "Obliquus externus abdominis", layer: "superficial", side: "front", color: "#D946EF", position: [-0.26, 0.55, 0.12], scale: [0.12, 0.32, 0.06], rotation: [0, 0, 0.15], shape: "box" },
+  { id: "oblique-r", name: "External Oblique", scientificName: "Obliquus externus abdominis", layer: "superficial", side: "front", color: "#D946EF", position: [0.26, 0.55, 0.12], scale: [0.12, 0.32, 0.06], rotation: [0, 0, -0.15], shape: "box" },
+  // Quadriceps
+  { id: "quad-l", name: "Quadriceps", scientificName: "Quadriceps femoris", layer: "superficial", side: "front", color: "#00FF88", position: [-0.18, -0.1, 0.1], scale: [0.14, 0.42, 0.14], shape: "capsule" },
+  { id: "quad-r", name: "Quadriceps", scientificName: "Quadriceps femoris", layer: "superficial", side: "front", color: "#00FF88", position: [0.18, -0.1, 0.1], scale: [0.14, 0.42, 0.14], shape: "capsule" },
+  // Tibialis Anterior
+  { id: "tib-ant-l", name: "Tibialis Anterior", scientificName: "Tibialis anterior", layer: "superficial", side: "front", color: "#4D7CFF", position: [-0.16, -0.72, 0.08], scale: [0.06, 0.28, 0.06], shape: "capsule" },
+  { id: "tib-ant-r", name: "Tibialis Anterior", scientificName: "Tibialis anterior", layer: "superficial", side: "front", color: "#4D7CFF", position: [0.16, -0.72, 0.08], scale: [0.06, 0.28, 0.06], shape: "capsule" },
 
-  // FRONT VIEW - Deep
-  { id: "pectoralis-minor", label: "Pectoralis Minor", scientificName: "Pectoralis minor", path: "M 88 97 Q 97 92 105 97 L 107 108 Q 100 112 95 110 Q 90 112 87 108 Z", layer: "deep", side: "front", color: "#FF2D92" },
-  { id: "serratus-anterior", label: "Serratus Anterior", scientificName: "Serratus anterior", path: "M 78 105 L 82 100 L 85 118 L 82 130 Q 78 128 78 120 Z", layer: "deep", side: "front", color: "#F97316" },
-  { id: "serratus-anterior-r", label: "Serratus Anterior", scientificName: "Serratus anterior", path: "M 122 105 L 118 100 L 115 118 L 118 130 Q 122 128 122 120 Z", layer: "deep", side: "front", color: "#F97316" },
-  { id: "transversus-abdominis", label: "Transversus Abdominis", scientificName: "Transversus abdominis", path: "M 88 125 L 112 125 L 112 160 Q 105 165 100 165 Q 95 165 88 160 Z", layer: "deep", side: "front", color: "#8B5CF6" },
-  { id: "iliopsoas-l", label: "Iliopsoas", scientificName: "Iliacus & Psoas major", path: "M 88 155 Q 85 160 83 170 L 85 180 Q 88 178 90 172 L 92 160 Z", layer: "deep", side: "front", color: "#EC4899" },
-  { id: "iliopsoas-r", label: "Iliopsoas", scientificName: "Iliacus & Psoas major", path: "M 112 155 Q 115 160 117 170 L 115 180 Q 112 178 110 172 L 108 160 Z", layer: "deep", side: "front", color: "#EC4899" },
+  // === FRONT DEEP ===
+  { id: "pec-minor", name: "Pectoralis Minor", scientificName: "Pectoralis minor", layer: "deep", side: "front", color: "#FF2D92", position: [0, 0.96, 0.1], scale: [0.22, 0.14, 0.06], shape: "box" },
+  { id: "serratus-l", name: "Serratus Anterior", scientificName: "Serratus anterior", layer: "deep", side: "front", color: "#F97316", position: [-0.34, 0.78, 0.08], scale: [0.08, 0.2, 0.1], shape: "box" },
+  { id: "serratus-r", name: "Serratus Anterior", scientificName: "Serratus anterior", layer: "deep", side: "front", color: "#F97316", position: [0.34, 0.78, 0.08], scale: [0.08, 0.2, 0.1], shape: "box" },
+  { id: "transversus", name: "Transversus Abdominis", scientificName: "Transversus abdominis", layer: "deep", side: "front", color: "#8B5CF6", position: [0, 0.55, 0.08], scale: [0.28, 0.32, 0.04], shape: "box" },
+  { id: "iliopsoas-l", name: "Iliopsoas", scientificName: "Iliacus & Psoas major", layer: "deep", side: "front", color: "#EC4899", position: [-0.14, 0.22, 0.04], scale: [0.07, 0.18, 0.08], shape: "capsule" },
+  { id: "iliopsoas-r", name: "Iliopsoas", scientificName: "Iliacus & Psoas major", layer: "deep", side: "front", color: "#EC4899", position: [0.14, 0.22, 0.04], scale: [0.07, 0.18, 0.08], shape: "capsule" },
 
-  // BACK VIEW - Superficial
-  { id: "trapezius", label: "Trapezius", scientificName: "Trapezius", path: "M 85 65 Q 95 58 100 55 Q 105 58 115 65 L 118 85 Q 105 82 100 80 Q 95 82 82 85 Z", layer: "superficial", side: "back", color: "#FF6B35" },
-  { id: "latissimus-dorsi-l", label: "Latissimus Dorsi", scientificName: "Latissimus dorsi", path: "M 75 90 Q 78 85 82 85 L 92 95 L 92 150 Q 85 155 80 152 L 75 140 Q 72 120 75 90 Z", layer: "superficial", side: "back", color: "#00F0FF" },
-  { id: "latissimus-dorsi-r", label: "Latissimus Dorsi", scientificName: "Latissimus dorsi", path: "M 125 90 Q 122 85 118 85 L 108 95 L 108 150 Q 115 155 120 152 L 125 140 Q 128 120 125 90 Z", layer: "superficial", side: "back", color: "#00F0FF" },
-  { id: "posterior-deltoid-l", label: "Posterior Deltoid", scientificName: "Deltoideus – pars spinalis", path: "M 70 75 Q 68 80 68 88 L 72 95 Q 75 92 78 88 L 82 85 Q 78 78 72 75 Z", layer: "superficial", side: "back", color: "#FF6B35" },
-  { id: "posterior-deltoid-r", label: "Posterior Deltoid", scientificName: "Deltoideus – pars spinalis", path: "M 130 75 Q 132 80 132 88 L 128 95 Q 125 92 122 88 L 118 85 Q 122 78 128 75 Z", layer: "superficial", side: "back", color: "#FF6B35" },
-  { id: "triceps-l", label: "Triceps Brachii", scientificName: "Triceps brachii", path: "M 65 95 Q 62 100 60 110 L 58 130 Q 60 134 64 134 L 68 130 Q 70 120 70 105 Q 70 98 68 95 Z", layer: "superficial", side: "back", color: "#4D7CFF" },
-  { id: "triceps-r", label: "Triceps Brachii", scientificName: "Triceps brachii", path: "M 135 95 Q 138 100 140 110 L 142 130 Q 140 134 136 134 L 132 130 Q 130 120 130 105 Q 130 98 132 95 Z", layer: "superficial", side: "back", color: "#4D7CFF" },
-  { id: "glutes-l", label: "Gluteus Maximus", scientificName: "Gluteus maximus", path: "M 80 155 Q 75 162 75 175 Q 78 185 85 185 L 95 182 Q 98 175 98 168 Q 95 160 90 155 Z", layer: "superficial", side: "back", color: "#FF4466" },
-  { id: "glutes-r", label: "Gluteus Maximus", scientificName: "Gluteus maximus", path: "M 120 155 Q 125 162 125 175 Q 122 185 115 185 L 105 182 Q 102 175 102 168 Q 105 160 110 155 Z", layer: "superficial", side: "back", color: "#FF4466" },
-  { id: "hamstrings-l", label: "Hamstrings", scientificName: "Biceps femoris, Semimembranosus, Semitendinosus", path: "M 78 188 Q 75 195 74 210 L 76 240 Q 80 245 85 242 L 92 238 Q 95 228 94 215 Q 94 200 92 190 Z", layer: "superficial", side: "back", color: "#00FF88" },
-  { id: "hamstrings-r", label: "Hamstrings", scientificName: "Biceps femoris, Semimembranosus, Semitendinosus", path: "M 122 188 Q 125 195 126 210 L 124 240 Q 120 245 115 242 L 108 238 Q 105 228 106 215 Q 106 200 108 190 Z", layer: "superficial", side: "back", color: "#00FF88" },
-  { id: "gastrocnemius-l", label: "Gastrocnemius", scientificName: "Gastrocnemius", path: "M 76 245 Q 74 252 75 265 L 78 280 Q 82 282 85 280 L 88 265 Q 88 252 86 245 Z", layer: "superficial", side: "back", color: "#06B6D4" },
-  { id: "gastrocnemius-r", label: "Gastrocnemius", scientificName: "Gastrocnemius", path: "M 124 245 Q 126 252 125 265 L 122 280 Q 118 282 115 280 L 112 265 Q 112 252 114 245 Z", layer: "superficial", side: "back", color: "#06B6D4" },
+  // === BACK SUPERFICIAL ===
+  { id: "trapezius", name: "Trapezius", scientificName: "Trapezius", layer: "superficial", side: "back", color: "#FF6B35", position: [0, 1.15, -0.14], scale: [0.36, 0.22, 0.06], shape: "box" },
+  { id: "lat-l", name: "Latissimus Dorsi", scientificName: "Latissimus dorsi", layer: "superficial", side: "back", color: "#00F0FF", position: [-0.24, 0.72, -0.15], scale: [0.22, 0.38, 0.06], rotation: [0, 0, 0.1], shape: "box" },
+  { id: "lat-r", name: "Latissimus Dorsi", scientificName: "Latissimus dorsi", layer: "superficial", side: "back", color: "#00F0FF", position: [0.24, 0.72, -0.15], scale: [0.22, 0.38, 0.06], rotation: [0, 0, -0.1], shape: "box" },
+  { id: "post-delt-l", name: "Posterior Deltoid", scientificName: "Deltoideus – pars spinalis", layer: "superficial", side: "back", color: "#FF6B35", position: [-0.48, 1.06, -0.1], scale: [0.12, 0.14, 0.12], shape: "sphere" },
+  { id: "post-delt-r", name: "Posterior Deltoid", scientificName: "Deltoideus – pars spinalis", layer: "superficial", side: "back", color: "#FF6B35", position: [0.48, 1.06, -0.1], scale: [0.12, 0.14, 0.12], shape: "sphere" },
+  { id: "tricep-l", name: "Triceps Brachii", scientificName: "Triceps brachii", layer: "superficial", side: "back", color: "#4D7CFF", position: [-0.56, 0.72, -0.06], scale: [0.09, 0.24, 0.1], shape: "capsule" },
+  { id: "tricep-r", name: "Triceps Brachii", scientificName: "Triceps brachii", layer: "superficial", side: "back", color: "#4D7CFF", position: [0.56, 0.72, -0.06], scale: [0.09, 0.24, 0.1], shape: "capsule" },
+  { id: "glute-l", name: "Gluteus Maximus", scientificName: "Gluteus maximus", layer: "superficial", side: "back", color: "#FF4466", position: [-0.16, 0.12, -0.16], scale: [0.16, 0.18, 0.12], shape: "sphere" },
+  { id: "glute-r", name: "Gluteus Maximus", scientificName: "Gluteus maximus", layer: "superficial", side: "back", color: "#FF4466", position: [0.16, 0.12, -0.16], scale: [0.16, 0.18, 0.12], shape: "sphere" },
+  { id: "hamstring-l", name: "Hamstrings", scientificName: "Biceps femoris, Semimembranosus, Semitendinosus", layer: "superficial", side: "back", color: "#00FF88", position: [-0.17, -0.22, -0.1], scale: [0.12, 0.38, 0.12], shape: "capsule" },
+  { id: "hamstring-r", name: "Hamstrings", scientificName: "Biceps femoris, Semimembranosus, Semitendinosus", layer: "superficial", side: "back", color: "#00FF88", position: [0.17, -0.22, -0.1], scale: [0.12, 0.38, 0.12], shape: "capsule" },
+  { id: "gastroc-l", name: "Gastrocnemius", scientificName: "Gastrocnemius", layer: "superficial", side: "back", color: "#06B6D4", position: [-0.15, -0.68, -0.08], scale: [0.07, 0.22, 0.08], shape: "capsule" },
+  { id: "gastroc-r", name: "Gastrocnemius", scientificName: "Gastrocnemius", layer: "superficial", side: "back", color: "#06B6D4", position: [0.15, -0.68, -0.08], scale: [0.07, 0.22, 0.08], shape: "capsule" },
 
-  // BACK VIEW - Deep
-  { id: "rhomboids", label: "Rhomboids", scientificName: "Rhomboid major & minor", path: "M 90 72 Q 95 68 100 67 Q 105 68 110 72 L 110 95 Q 105 92 100 90 Q 95 92 90 95 Z", layer: "deep", side: "back", color: "#A855F7" },
-  { id: "erector-spinae", label: "Erector Spinae", scientificName: "Erector spinae (iliocostalis, longissimus, spinalis)", path: "M 95 80 L 105 80 L 106 155 Q 103 158 100 158 Q 97 158 94 155 Z", layer: "deep", side: "back", color: "#F59E0B" },
-  { id: "gluteus-medius-l", label: "Gluteus Medius", scientificName: "Gluteus medius", path: "M 76 148 Q 72 155 72 165 Q 75 172 80 172 L 88 168 Q 90 162 90 155 Q 87 150 82 148 Z", layer: "deep", side: "back", color: "#EC4899" },
-  { id: "gluteus-medius-r", label: "Gluteus Medius", scientificName: "Gluteus medius", path: "M 124 148 Q 128 155 128 165 Q 125 172 120 172 L 112 168 Q 110 162 110 155 Q 113 150 118 148 Z", layer: "deep", side: "back", color: "#EC4899" },
-  { id: "soleus-l", label: "Soleus", scientificName: "Soleus", path: "M 78 268 Q 77 275 78 285 Q 80 288 83 285 L 85 275 Q 85 270 84 268 Z", layer: "deep", side: "back", color: "#06B6D4" },
-  { id: "soleus-r", label: "Soleus", scientificName: "Soleus", path: "M 122 268 Q 123 275 122 285 Q 120 288 117 285 L 115 275 Q 115 270 116 268 Z", layer: "deep", side: "back", color: "#06B6D4" },
+  // === BACK DEEP ===
+  { id: "rhomboids", name: "Rhomboids", scientificName: "Rhomboid major & minor", layer: "deep", side: "back", color: "#A855F7", position: [0, 1.02, -0.1], scale: [0.18, 0.2, 0.04], shape: "box" },
+  { id: "erector-spinae", name: "Erector Spinae", scientificName: "Erector spinae", layer: "deep", side: "back", color: "#F59E0B", position: [0, 0.65, -0.12], scale: [0.1, 0.55, 0.05], shape: "capsule" },
+  { id: "glute-med-l", name: "Gluteus Medius", scientificName: "Gluteus medius", layer: "deep", side: "back", color: "#EC4899", position: [-0.22, 0.2, -0.1], scale: [0.12, 0.12, 0.08], shape: "sphere" },
+  { id: "glute-med-r", name: "Gluteus Medius", scientificName: "Gluteus medius", layer: "deep", side: "back", color: "#EC4899", position: [0.22, 0.2, -0.1], scale: [0.12, 0.12, 0.08], shape: "sphere" },
+  { id: "soleus-l", name: "Soleus", scientificName: "Soleus", layer: "deep", side: "back", color: "#06B6D4", position: [-0.14, -0.78, -0.04], scale: [0.05, 0.18, 0.05], shape: "capsule" },
+  { id: "soleus-r", name: "Soleus", scientificName: "Soleus", layer: "deep", side: "back", color: "#06B6D4", position: [0.14, -0.78, -0.04], scale: [0.05, 0.18, 0.05], shape: "capsule" },
 ];
 
-interface AnatomyViewerProps {
-  highlightedMuscles?: string[];
-  onMuscleSelect?: (muscle: MuscleZone) => void;
-  compact?: boolean;
+// ═══════════════════════════════════════════
+// 3D MUSCLE MESH COMPONENT
+// ═══════════════════════════════════════════
+function MuscleMesh({
+  muscle,
+  isHighlighted,
+  isHovered,
+  isSelected,
+  isDimmed,
+  onHover,
+  onUnhover,
+  onClick,
+}: {
+  muscle: Muscle3D;
+  isHighlighted: boolean;
+  isHovered: boolean;
+  isSelected: boolean;
+  isDimmed: boolean;
+  onHover: () => void;
+  onUnhover: () => void;
+  onClick: () => void;
+}) {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const glowRef = useRef<THREE.Mesh>(null);
+  const active = isHighlighted || isHovered || isSelected;
+  const color = new THREE.Color(muscle.color);
+
+  useFrame((_, delta) => {
+    if (!meshRef.current) return;
+    const mat = meshRef.current.material as THREE.MeshStandardMaterial;
+    const targetOpacity = isDimmed ? 0.08 : active ? 0.85 : 0.35;
+    const targetEmissive = active ? 0.4 : 0;
+    mat.opacity += (targetOpacity - mat.opacity) * delta * 6;
+    mat.emissiveIntensity += (targetEmissive - mat.emissiveIntensity) * delta * 6;
+
+    if (glowRef.current) {
+      const glowMat = glowRef.current.material as THREE.MeshBasicMaterial;
+      const targetGlow = active ? 0.3 : 0;
+      glowMat.opacity += (targetGlow - glowMat.opacity) * delta * 6;
+    }
+
+    // Subtle pulse when selected
+    if (isSelected && meshRef.current) {
+      const pulse = 1 + Math.sin(Date.now() * 0.003) * 0.03;
+      meshRef.current.scale.set(
+        muscle.scale[0] * pulse,
+        muscle.scale[1] * pulse,
+        muscle.scale[2] * pulse
+      );
+    }
+  });
+
+  const geometry = useMemo(() => {
+    switch (muscle.shape) {
+      case "sphere":
+        return new THREE.SphereGeometry(0.5, 16, 16);
+      case "capsule":
+        return new THREE.CapsuleGeometry(0.35, 0.6, 8, 16);
+      case "cylinder":
+        return new THREE.CylinderGeometry(0.4, 0.5, 1, 12);
+      default:
+        return new THREE.BoxGeometry(1, 1, 1, 2, 2, 2);
+    }
+  }, [muscle.shape]);
+
+  return (
+    <group
+      position={muscle.position}
+      rotation={muscle.rotation || [0, 0, 0]}
+    >
+      {/* Glow mesh (slightly larger) */}
+      <mesh
+        ref={glowRef}
+        scale={[muscle.scale[0] * 1.3, muscle.scale[1] * 1.3, muscle.scale[2] * 1.3]}
+        geometry={geometry}
+      >
+        <meshBasicMaterial
+          color={color}
+          transparent
+          opacity={0}
+          side={THREE.FrontSide}
+          depthWrite={false}
+        />
+      </mesh>
+
+      {/* Main muscle mesh */}
+      <mesh
+        ref={meshRef}
+        scale={muscle.scale}
+        geometry={geometry}
+        onPointerEnter={(e: ThreeEvent<PointerEvent>) => { e.stopPropagation(); onHover(); document.body.style.cursor = "pointer"; }}
+        onPointerLeave={() => { onUnhover(); document.body.style.cursor = "auto"; }}
+        onClick={(e: ThreeEvent<MouseEvent>) => { e.stopPropagation(); onClick(); }}
+      >
+        <meshStandardMaterial
+          color={color}
+          transparent
+          opacity={0.35}
+          roughness={0.3}
+          metalness={0.1}
+          emissive={color}
+          emissiveIntensity={0}
+          side={THREE.DoubleSide}
+          depthWrite={false}
+        />
+      </mesh>
+    </group>
+  );
 }
 
-export default function AnatomyViewer({ highlightedMuscles = [], onMuscleSelect, compact = false }: AnatomyViewerProps) {
-  const [view, setView] = useState<"front" | "back">("front");
-  const [activeLayer, setActiveLayer] = useState<"all" | "superficial" | "deep">("all");
-  const [hoveredMuscle, setHoveredMuscle] = useState<MuscleZone | null>(null);
-  const [selectedMuscle, setSelectedMuscle] = useState<MuscleZone | null>(null);
+// ═══════════════════════════════════════════
+// SKELETON / BODY WIREFRAME
+// ═══════════════════════════════════════════
+function BodyWireframe() {
+  const groupRef = useRef<THREE.Group>(null);
 
-  const visibleMuscles = muscleZones.filter(m => {
-    if (m.side !== view) return false;
+  useFrame((_, delta) => {
+    if (groupRef.current) {
+      // Very subtle rotation drift
+      groupRef.current.rotation.y += delta * 0.02;
+    }
+  });
+
+  const bodyMaterial = useMemo(() => new THREE.MeshStandardMaterial({
+    color: "#1a1a2e",
+    transparent: true,
+    opacity: 0.15,
+    roughness: 0.8,
+    metalness: 0.2,
+    wireframe: false,
+    side: THREE.DoubleSide,
+  }), []);
+
+  const wireMaterial = useMemo(() => new THREE.MeshBasicMaterial({
+    color: "#ffffff",
+    transparent: true,
+    opacity: 0.04,
+    wireframe: true,
+  }), []);
+
+  return (
+    <group>
+      {/* Head */}
+      <mesh position={[0, 1.52, 0]} material={bodyMaterial}>
+        <sphereGeometry args={[0.12, 16, 16]} />
+      </mesh>
+      <mesh position={[0, 1.52, 0]} material={wireMaterial}>
+        <sphereGeometry args={[0.125, 12, 12]} />
+      </mesh>
+
+      {/* Neck */}
+      <mesh position={[0, 1.35, 0]} material={bodyMaterial}>
+        <cylinderGeometry args={[0.06, 0.08, 0.12, 8]} />
+      </mesh>
+
+      {/* Torso */}
+      <mesh position={[0, 0.85, 0]} material={bodyMaterial}>
+        <boxGeometry args={[0.55, 0.7, 0.28]} />
+      </mesh>
+      <mesh position={[0, 0.85, 0]} material={wireMaterial}>
+        <boxGeometry args={[0.56, 0.71, 0.29]} />
+      </mesh>
+
+      {/* Pelvis */}
+      <mesh position={[0, 0.38, 0]} material={bodyMaterial}>
+        <boxGeometry args={[0.48, 0.25, 0.24]} />
+      </mesh>
+
+      {/* Upper arms */}
+      <mesh position={[-0.52, 0.88, 0]} rotation={[0, 0, 0.2]} material={bodyMaterial}>
+        <capsuleGeometry args={[0.06, 0.28, 6, 12]} />
+      </mesh>
+      <mesh position={[0.52, 0.88, 0]} rotation={[0, 0, -0.2]} material={bodyMaterial}>
+        <capsuleGeometry args={[0.06, 0.28, 6, 12]} />
+      </mesh>
+
+      {/* Forearms */}
+      <mesh position={[-0.58, 0.52, 0.02]} material={bodyMaterial}>
+        <capsuleGeometry args={[0.04, 0.26, 6, 12]} />
+      </mesh>
+      <mesh position={[0.58, 0.52, 0.02]} material={bodyMaterial}>
+        <capsuleGeometry args={[0.04, 0.26, 6, 12]} />
+      </mesh>
+
+      {/* Upper legs */}
+      <mesh position={[-0.16, -0.05, 0]} material={bodyMaterial}>
+        <capsuleGeometry args={[0.09, 0.38, 8, 12]} />
+      </mesh>
+      <mesh position={[0.16, -0.05, 0]} material={bodyMaterial}>
+        <capsuleGeometry args={[0.09, 0.38, 8, 12]} />
+      </mesh>
+      <mesh position={[-0.16, -0.05, 0]} material={wireMaterial}>
+        <capsuleGeometry args={[0.095, 0.39, 6, 10]} />
+      </mesh>
+      <mesh position={[0.16, -0.05, 0]} material={wireMaterial}>
+        <capsuleGeometry args={[0.095, 0.39, 6, 10]} />
+      </mesh>
+
+      {/* Lower legs */}
+      <mesh position={[-0.15, -0.62, 0]} material={bodyMaterial}>
+        <capsuleGeometry args={[0.06, 0.36, 8, 12]} />
+      </mesh>
+      <mesh position={[0.15, -0.62, 0]} material={bodyMaterial}>
+        <capsuleGeometry args={[0.06, 0.36, 8, 12]} />
+      </mesh>
+
+      {/* Feet */}
+      <mesh position={[-0.15, -0.92, 0.04]} material={bodyMaterial}>
+        <boxGeometry args={[0.08, 0.04, 0.14]} />
+      </mesh>
+      <mesh position={[0.15, -0.92, 0.04]} material={bodyMaterial}>
+        <boxGeometry args={[0.08, 0.04, 0.14]} />
+      </mesh>
+    </group>
+  );
+}
+
+// ═══════════════════════════════════════════
+// FLOATING GRID FLOOR
+// ═══════════════════════════════════════════
+function GridFloor() {
+  return (
+    <group position={[0, -0.98, 0]}>
+      <gridHelper args={[4, 20, "#ffffff08", "#ffffff04"]} />
+      {/* Circular platform */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
+        <ringGeometry args={[0.6, 0.62, 64]} />
+        <meshBasicMaterial color="#00F0FF" transparent opacity={0.15} />
+      </mesh>
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, 0]}>
+        <circleGeometry args={[0.6, 64]} />
+        <meshBasicMaterial color="#00F0FF" transparent opacity={0.03} />
+      </mesh>
+    </group>
+  );
+}
+
+// ═══════════════════════════════════════════
+// PARTICLE FIELD
+// ═══════════════════════════════════════════
+function ParticleField() {
+  const points = useRef<THREE.Points>(null);
+  const particleCount = 200;
+
+  const positions = useMemo(() => {
+    const pos = new Float32Array(particleCount * 3);
+    for (let i = 0; i < particleCount; i++) {
+      pos[i * 3] = (Math.random() - 0.5) * 4;
+      pos[i * 3 + 1] = (Math.random() - 0.5) * 4;
+      pos[i * 3 + 2] = (Math.random() - 0.5) * 4;
+    }
+    return pos;
+  }, []);
+
+  useFrame((_, delta) => {
+    if (points.current) {
+      points.current.rotation.y += delta * 0.015;
+      points.current.rotation.x += delta * 0.008;
+    }
+  });
+
+  const bufferGeom = useMemo(() => {
+    const geom = new THREE.BufferGeometry();
+    geom.setAttribute("position", new THREE.BufferAttribute(positions, 3));
+    return geom;
+  }, [positions]);
+
+  return (
+    <points ref={points} geometry={bufferGeom}>
+      <pointsMaterial
+        size={0.008}
+        color="#00F0FF"
+        transparent
+        opacity={0.3}
+        sizeAttenuation
+        depthWrite={false}
+      />
+    </points>
+  );
+}
+
+// ═══════════════════════════════════════════
+// MAIN SCENE COMPONENT
+// ═══════════════════════════════════════════
+function AnatomyScene({
+  activeLayer,
+  highlightedMuscles,
+  hoveredMuscle,
+  selectedMuscle,
+  onHover,
+  onUnhover,
+  onSelect,
+}: {
+  activeLayer: "all" | "superficial" | "deep";
+  highlightedMuscles: string[];
+  hoveredMuscle: string | null;
+  selectedMuscle: string | null;
+  onHover: (id: string) => void;
+  onUnhover: () => void;
+  onSelect: (id: string) => void;
+}) {
+  const visibleMuscles = muscles3D.filter(m => {
     if (activeLayer !== "all" && m.layer !== activeLayer) return false;
     return true;
   });
 
-  const isHighlighted = (m: MuscleZone) => {
+  const isHighlighted = useCallback((m: Muscle3D) => {
     if (highlightedMuscles.length === 0) return false;
     return highlightedMuscles.some(h =>
-      m.label.toLowerCase().includes(h.toLowerCase()) ||
+      m.name.toLowerCase().includes(h.toLowerCase()) ||
       m.scientificName.toLowerCase().includes(h.toLowerCase()) ||
       m.id.toLowerCase().includes(h.toLowerCase())
     );
-  };
+  }, [highlightedMuscles]);
 
-  function handleMuscleClick(m: MuscleZone) {
-    setSelectedMuscle(selectedMuscle?.id === m.id ? null : m);
-    onMuscleSelect?.(m);
-  }
-
-  const size = compact ? { width: 200, height: 300 } : { width: 200, height: 300 };
+  const hasHighlights = highlightedMuscles.length > 0;
 
   return (
-    <div className={compact ? "" : "flex flex-col items-center"}>
+    <>
+      <ambientLight intensity={0.3} />
+      <directionalLight position={[3, 5, 3]} intensity={0.5} color="#ffffff" />
+      <directionalLight position={[-2, 3, -2]} intensity={0.2} color="#00F0FF" />
+      <pointLight position={[0, 2, 2]} intensity={0.3} color="#A855F7" distance={5} />
+
+      <ParticleField />
+      <GridFloor />
+      <BodyWireframe />
+
+      {visibleMuscles.map(m => (
+        <MuscleMesh
+          key={m.id}
+          muscle={m}
+          isHighlighted={isHighlighted(m)}
+          isHovered={hoveredMuscle === m.id}
+          isSelected={selectedMuscle === m.id}
+          isDimmed={hasHighlights && !isHighlighted(m)}
+          onHover={() => onHover(m.id)}
+          onUnhover={onUnhover}
+          onClick={() => onSelect(m.id)}
+        />
+      ))}
+
+      <OrbitControls
+        enablePan={false}
+        enableZoom={true}
+        minDistance={1.5}
+        maxDistance={5}
+        minPolarAngle={Math.PI * 0.15}
+        maxPolarAngle={Math.PI * 0.85}
+        autoRotate={!hoveredMuscle && !selectedMuscle}
+        autoRotateSpeed={0.5}
+        dampingFactor={0.08}
+        enableDamping
+      />
+    </>
+  );
+}
+
+// ═══════════════════════════════════════════
+// EXPORTED COMPONENT
+// ═══════════════════════════════════════════
+interface AnatomyViewerProps {
+  highlightedMuscles?: string[];
+  onMuscleSelect?: (muscle: Muscle3D) => void;
+  compact?: boolean;
+}
+
+export default function AnatomyViewer({ highlightedMuscles = [], onMuscleSelect, compact = false }: AnatomyViewerProps) {
+  const [activeLayer, setActiveLayer] = useState<"all" | "superficial" | "deep">("all");
+  const [hoveredMuscle, setHoveredMuscle] = useState<string | null>(null);
+  const [selectedMuscle, setSelectedMuscle] = useState<string | null>(null);
+
+  const hoveredData = muscles3D.find(m => m.id === hoveredMuscle);
+  const selectedData = muscles3D.find(m => m.id === selectedMuscle);
+
+  function handleSelect(id: string) {
+    const newSelected = selectedMuscle === id ? null : id;
+    setSelectedMuscle(newSelected);
+    if (newSelected) {
+      const muscle = muscles3D.find(m => m.id === newSelected);
+      if (muscle) onMuscleSelect?.(muscle);
+    }
+  }
+
+  const height = compact ? 350 : 500;
+
+  return (
+    <div className="relative">
       {/* Controls */}
-      <div className="flex items-center gap-3 mb-4">
-        <div className="flex rounded-xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.08)" }}>
-          {(["front", "back"] as const).map(v => (
-            <button key={v} onClick={() => setView(v)}
-              className="px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.05em] transition-all"
-              style={{
-                background: view === v ? "rgba(0,240,255,0.1)" : "transparent",
-                color: view === v ? "#00F0FF" : "rgba(255,255,255,0.3)",
-              }}>
-              {v}
-            </button>
-          ))}
-        </div>
+      <div className="flex items-center gap-3 mb-3">
         <div className="flex rounded-xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.08)" }}>
           {(["all", "superficial", "deep"] as const).map(l => (
             <button key={l} onClick={() => setActiveLayer(l)}
@@ -121,111 +478,94 @@ export default function AnatomyViewer({ highlightedMuscles = [], onMuscleSelect,
             </button>
           ))}
         </div>
+        <span className="text-[9px] uppercase tracking-wider" style={{ color: "rgba(255,255,255,0.15)" }}>
+          Drag to rotate &middot; Scroll to zoom
+        </span>
       </div>
 
-      {/* SVG Body */}
-      <div className="relative">
-        <svg viewBox="40 40 120 260" width={size.width} height={size.height}
-          className="drop-shadow-lg">
-          {/* Body outline */}
-          <g opacity="0.15" stroke="rgba(255,255,255,0.3)" strokeWidth="0.5" fill="none">
-            {/* Head */}
-            <circle cx="100" cy="50" r="10" />
-            {/* Neck */}
-            <line x1="96" y1="60" x2="96" y2="65" />
-            <line x1="104" y1="60" x2="104" y2="65" />
-            {/* Torso */}
-            <path d="M 72 68 Q 68 72 66 85 L 62 95 L 58 130 Q 62 140 65 145 Q 70 150 75 155 L 78 170 Q 80 175 82 170 L 95 168 L 100 170 L 105 168 L 118 170 Q 120 175 122 170 L 125 155 Q 130 150 135 145 Q 138 140 142 130 L 138 95 L 134 85 Q 132 72 128 68 Q 115 62 100 60 Q 85 62 72 68 Z" />
-            {/* Legs */}
-            <path d="M 82 170 Q 78 185 76 200 L 74 230 Q 76 248 78 260 L 80 290 Q 82 295 85 295 L 88 290 Q 92 270 94 250 Q 96 230 95 210 L 95 185 Q 95 175 92 170" />
-            <path d="M 118 170 Q 122 185 124 200 L 126 230 Q 124 248 122 260 L 120 290 Q 118 295 115 295 L 112 290 Q 108 270 106 250 Q 104 230 105 210 L 105 185 Q 105 175 108 170" />
-          </g>
+      {/* 3D Canvas */}
+      <div className="relative rounded-2xl overflow-hidden" style={{
+        height: `${height}px`,
+        background: "radial-gradient(ellipse at center, rgba(15,15,30,1) 0%, rgba(5,5,10,1) 100%)",
+        border: "1px solid rgba(255,255,255,0.06)",
+      }}>
+        <Canvas
+          camera={{ position: [0, 0.3, 2.5], fov: 45 }}
+          gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
+          dpr={[1, 2]}
+        >
+          <AnatomyScene
+            activeLayer={activeLayer}
+            highlightedMuscles={highlightedMuscles}
+            hoveredMuscle={hoveredMuscle}
+            selectedMuscle={selectedMuscle}
+            onHover={setHoveredMuscle}
+            onUnhover={() => setHoveredMuscle(null)}
+            onSelect={handleSelect}
+          />
+        </Canvas>
 
-          {/* Muscles */}
-          {visibleMuscles.map(m => {
-            const highlighted = isHighlighted(m);
-            const hovered = hoveredMuscle?.id === m.id;
-            const selected = selectedMuscle?.id === m.id;
-            const active = highlighted || hovered || selected;
-            return (
-              <path
-                key={m.id}
-                d={m.path}
-                fill={m.color}
-                fillOpacity={active ? 0.7 : (highlightedMuscles.length > 0 && !highlighted ? 0.08 : 0.3)}
-                stroke={active ? m.color : "transparent"}
-                strokeWidth={active ? 1 : 0}
-                className="anatomy-muscle cursor-pointer transition-all duration-200"
-                style={{
-                  filter: active ? `drop-shadow(0 0 8px ${m.color}80)` : "none",
-                }}
-                onMouseEnter={() => setHoveredMuscle(m)}
-                onMouseLeave={() => setHoveredMuscle(null)}
-                onClick={() => handleMuscleClick(m)}
-              />
-            );
-          })}
-        </svg>
-
-        {/* Hover tooltip */}
-        {hoveredMuscle && (
-          <div className="absolute top-2 left-full ml-4 z-20 pointer-events-none"
+        {/* Hover tooltip overlay */}
+        {hoveredData && (
+          <div className="absolute top-4 left-4 pointer-events-none z-10"
             style={{
-              background: "rgba(10,10,20,0.95)",
-              border: `1px solid ${hoveredMuscle.color}40`,
+              background: "rgba(5,5,15,0.9)",
+              backdropFilter: "blur(12px)",
+              border: `1px solid ${hoveredData.color}40`,
               borderRadius: "12px",
               padding: "10px 14px",
-              minWidth: "180px",
-              boxShadow: `0 0 20px ${hoveredMuscle.color}15`,
+              boxShadow: `0 0 20px ${hoveredData.color}15`,
             }}>
-            <p className="text-[12px] font-bold" style={{ color: hoveredMuscle.color }}>
-              {hoveredMuscle.label}
+            <p className="text-[12px] font-bold" style={{ color: hoveredData.color }}>
+              {hoveredData.name}
             </p>
             <p className="text-[10px] italic mt-0.5" style={{ color: "rgba(255,255,255,0.4)" }}>
-              {hoveredMuscle.scientificName}
+              {hoveredData.scientificName}
             </p>
-            <p className="text-[10px] mt-1 uppercase tracking-[0.05em]" style={{ color: "rgba(255,255,255,0.25)" }}>
-              {hoveredMuscle.layer} layer
-            </p>
+            <div className="flex gap-2 mt-1.5">
+              <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
+                style={{ background: `${hoveredData.color}15`, color: hoveredData.color }}>
+                {hoveredData.layer}
+              </span>
+              <span className="text-[8px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded"
+                style={{ background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.3)" }}>
+                {hoveredData.side}
+              </span>
+            </div>
           </div>
         )}
+
+        {/* Corner label */}
+        <div className="absolute bottom-3 right-3 pointer-events-none">
+          <span className="text-[9px] font-bold uppercase tracking-[0.1em]" style={{ color: "rgba(255,255,255,0.1)" }}>
+            3D ANATOMY
+          </span>
+        </div>
       </div>
 
       {/* Selected muscle detail */}
-      {selectedMuscle && !compact && (
-        <div className="mt-4 w-full max-w-xs p-4 rounded-2xl"
+      {selectedData && !compact && (
+        <div className="mt-3 p-4 rounded-2xl"
           style={{
-            background: "rgba(255,255,255,0.03)",
-            border: `1px solid ${selectedMuscle.color}30`,
+            background: `linear-gradient(135deg, ${selectedData.color}08, transparent)`,
+            border: `1px solid ${selectedData.color}20`,
           }}>
-          <div className="flex items-center justify-between mb-2">
-            <h4 className="text-[13px] font-bold" style={{ color: selectedMuscle.color }}>
-              {selectedMuscle.label}
+          <div className="flex items-center justify-between mb-1">
+            <h4 className="text-[13px] font-bold" style={{ color: selectedData.color }}>
+              {selectedData.name}
             </h4>
             <button onClick={() => setSelectedMuscle(null)}
               className="text-[10px]" style={{ color: "rgba(255,255,255,0.3)" }}>
-              Close
+              Deselect
             </button>
           </div>
-          <p className="text-[11px] italic mb-2" style={{ color: "rgba(255,255,255,0.5)" }}>
-            {selectedMuscle.scientificName}
+          <p className="text-[11px] italic" style={{ color: "rgba(255,255,255,0.4)" }}>
+            {selectedData.scientificName}
           </p>
-          <div className="flex gap-2">
-            <span className="text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
-              style={{
-                background: `${selectedMuscle.color}15`,
-                color: selectedMuscle.color,
-                border: `1px solid ${selectedMuscle.color}25`,
-              }}>
-              {selectedMuscle.layer}
-            </span>
-            <span className="text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full"
-              style={{
-                background: "rgba(255,255,255,0.05)",
-                color: "rgba(255,255,255,0.4)",
-                border: "1px solid rgba(255,255,255,0.08)",
-              }}>
-              {selectedMuscle.side} view
+          <div className="flex gap-2 mt-2">
+            <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full"
+              style={{ background: `${selectedData.color}12`, color: selectedData.color, border: `1px solid ${selectedData.color}20` }}>
+              {selectedData.layer}
             </span>
           </div>
         </div>
@@ -233,3 +573,5 @@ export default function AnatomyViewer({ highlightedMuscles = [], onMuscleSelect,
     </div>
   );
 }
+
+export type { Muscle3D };
