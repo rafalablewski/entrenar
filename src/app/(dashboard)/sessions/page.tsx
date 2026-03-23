@@ -9,6 +9,42 @@ interface TrainingSession {
 }
 interface Plan { id: string; title: string; athlete_name?: string; }
 
+type Difficulty = "too_easy" | "easy" | "just_right" | "hard" | "too_hard";
+
+interface FeedbackItem {
+  id?: string;
+  session_id: string;
+  exercise_name: string;
+  rpe: number;
+  difficulty: Difficulty | "";
+  notes: string;
+}
+
+const DIFFICULTY_OPTIONS: { value: Difficulty; label: string; color: string }[] = [
+  { value: "too_easy", label: "Too Easy", color: "#22C55E" },
+  { value: "easy", label: "Easy", color: "#86EFAC" },
+  { value: "just_right", label: "Just Right", color: "#00F0FF" },
+  { value: "hard", label: "Hard", color: "#FF6B35" },
+  { value: "too_hard", label: "Too Hard", color: "#FF3B5C" },
+];
+
+function rpeColor(rpe: number): string {
+  if (rpe <= 3) return "#22C55E";
+  if (rpe <= 6) return "#EAB308";
+  if (rpe <= 9) return "#FF6B35";
+  return "#FF3B5C";
+}
+
+function difficultyLabel(d: string): string {
+  const opt = DIFFICULTY_OPTIONS.find((o) => o.value === d);
+  return opt ? opt.label : d;
+}
+
+function difficultyColor(d: string): string {
+  const opt = DIFFICULTY_OPTIONS.find((o) => o.value === d);
+  return opt ? opt.color : "rgba(255,255,255,0.4)";
+}
+
 export default function SessionsPage() {
   const [sessions, setSessions] = useState<TrainingSession[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -20,6 +56,10 @@ export default function SessionsPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editStatus, setEditStatus] = useState("");
   const [editNotes, setEditNotes] = useState("");
+  const [feedbackOpenId, setFeedbackOpenId] = useState<string | null>(null);
+  const [feedbackMap, setFeedbackMap] = useState<Record<string, FeedbackItem[]>>({});
+  const [feedbackEditing, setFeedbackEditing] = useState<Record<string, boolean>>({});
+  const [savingFeedback, setSavingFeedback] = useState(false);
 
   useEffect(() => { fetchData(); }, []);
 
@@ -56,6 +96,61 @@ export default function SessionsPage() {
     if (!confirm("Delete this session?")) return;
     await fetch("/api/sessions", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id }) });
     fetchData();
+  }
+
+  async function toggleFeedback(sessionId: string, exercises: Exercise[]) {
+    if (feedbackOpenId === sessionId) {
+      setFeedbackOpenId(null);
+      return;
+    }
+    setFeedbackOpenId(sessionId);
+    // Fetch existing feedback
+    const res = await fetch(`/api/exercise-feedback?session_id=${sessionId}`);
+    const data = await res.json();
+    const existing: FeedbackItem[] = (data.feedback || []).map((f: any) => ({
+      id: f.id, session_id: f.session_id, exercise_name: f.exercise_name,
+      rpe: f.rpe || 5, difficulty: f.difficulty || "", notes: f.notes || "",
+    }));
+    // For exercises without feedback, create blank entries
+    const items: FeedbackItem[] = exercises.map((ex) => {
+      const found = existing.find((f) => f.exercise_name === ex.name);
+      return found || { session_id: sessionId, exercise_name: ex.name, rpe: 5, difficulty: "", notes: "" };
+    });
+    setFeedbackMap((prev) => ({ ...prev, [sessionId]: items }));
+    // If there are any saved items, default to view mode
+    setFeedbackEditing((prev) => ({ ...prev, [sessionId]: existing.length === 0 }));
+  }
+
+  function updateFeedbackItem(sessionId: string, exerciseName: string, field: keyof FeedbackItem, value: any) {
+    setFeedbackMap((prev) => ({
+      ...prev,
+      [sessionId]: (prev[sessionId] || []).map((f) =>
+        f.exercise_name === exerciseName ? { ...f, [field]: value } : f
+      ),
+    }));
+  }
+
+  async function saveFeedback(sessionId: string) {
+    setSavingFeedback(true);
+    const items = feedbackMap[sessionId] || [];
+    for (const item of items) {
+      if (item.id) {
+        await fetch("/api/exercise-feedback", {
+          method: "PUT", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: item.id, rpe: item.rpe, difficulty: item.difficulty || null, notes: item.notes }),
+        });
+      } else {
+        const res = await fetch("/api/exercise-feedback", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ session_id: sessionId, exercise_name: item.exercise_name, rpe: item.rpe, difficulty: item.difficulty || null, notes: item.notes }),
+        });
+        const data = await res.json();
+        item.id = data.id;
+      }
+    }
+    setFeedbackMap((prev) => ({ ...prev, [sessionId]: [...items] }));
+    setFeedbackEditing((prev) => ({ ...prev, [sessionId]: false }));
+    setSavingFeedback(false);
   }
 
   return (
@@ -171,6 +266,127 @@ export default function SessionsPage() {
                   <p className="text-[12px]" style={{ color: "rgba(255,255,255,0.45)" }}>
                     <span className="font-semibold" style={{ color: "rgba(255,255,255,0.6)" }}>Notes:</span> {s.notes}
                   </p>
+                </div>
+              )}
+
+              {/* Feedback Section */}
+              {exercises.length > 0 && (
+                <div className="mb-3">
+                  <button
+                    onClick={() => toggleFeedback(s.id, exercises)}
+                    className="text-[11px] font-semibold hover:underline"
+                    style={{ color: "#00F0FF" }}
+                  >
+                    {feedbackOpenId === s.id ? "Hide Feedback" : "Rate Exercises"}
+                  </button>
+
+                  {feedbackOpenId === s.id && feedbackMap[s.id] && (
+                    <div className="mt-3 rounded-xl p-4" style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.04)" }}>
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-[12px] font-semibold" style={{ color: "rgba(255,255,255,0.5)" }}>Exercise Feedback</span>
+                        {!feedbackEditing[s.id] && (
+                          <button onClick={() => setFeedbackEditing((prev) => ({ ...prev, [s.id]: true }))}
+                            className="text-[11px] font-semibold hover:underline" style={{ color: "#00F0FF" }}>
+                            Edit
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="space-y-4">
+                        {feedbackMap[s.id].map((fb) => (
+                          <div key={fb.exercise_name} className="rounded-xl p-3" style={{ background: "rgba(255,255,255,0.02)" }}>
+                            <div className="text-[13px] font-semibold mb-2" style={{ color: "rgba(255,255,255,0.8)" }}>{fb.exercise_name}</div>
+
+                            {feedbackEditing[s.id] ? (
+                              <>
+                                {/* RPE Slider */}
+                                <div className="mb-2">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-[11px]" style={{ color: "rgba(255,255,255,0.4)" }}>RPE</span>
+                                    <span className="text-[13px] font-bold" style={{ color: rpeColor(fb.rpe) }}>{fb.rpe}</span>
+                                  </div>
+                                  <input
+                                    type="range" min={1} max={10} value={fb.rpe}
+                                    onChange={(e) => updateFeedbackItem(s.id, fb.exercise_name, "rpe", parseInt(e.target.value))}
+                                    className="w-full h-1.5 rounded-full appearance-none cursor-pointer"
+                                    style={{
+                                      background: `linear-gradient(to right, ${rpeColor(fb.rpe)} 0%, ${rpeColor(fb.rpe)} ${((fb.rpe - 1) / 9) * 100}%, rgba(255,255,255,0.08) ${((fb.rpe - 1) / 9) * 100}%, rgba(255,255,255,0.08) 100%)`,
+                                      accentColor: rpeColor(fb.rpe),
+                                    }}
+                                  />
+                                </div>
+
+                                {/* Difficulty Pills */}
+                                <div className="mb-2">
+                                  <span className="text-[11px] block mb-1.5" style={{ color: "rgba(255,255,255,0.4)" }}>Difficulty</span>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {DIFFICULTY_OPTIONS.map((opt) => {
+                                      const selected = fb.difficulty === opt.value;
+                                      return (
+                                        <button key={opt.value} type="button"
+                                          onClick={() => updateFeedbackItem(s.id, fb.exercise_name, "difficulty", selected ? "" : opt.value)}
+                                          className="px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-all"
+                                          style={{
+                                            background: selected ? `${opt.color}12` : "rgba(255,255,255,0.03)",
+                                            border: selected ? `1px solid ${opt.color}40` : "1px solid rgba(255,255,255,0.06)",
+                                            color: selected ? opt.color : "rgba(255,255,255,0.35)",
+                                          }}>
+                                          {opt.label}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+
+                                {/* Notes */}
+                                <input
+                                  value={fb.notes}
+                                  onChange={(e) => updateFeedbackItem(s.id, fb.exercise_name, "notes", e.target.value)}
+                                  placeholder="Notes..."
+                                  className="input !py-1.5 text-[12px] w-full"
+                                />
+                              </>
+                            ) : (
+                              /* View mode - show saved feedback inline */
+                              <div className="flex items-center gap-3 flex-wrap">
+                                {fb.id && (
+                                  <>
+                                    <span className="text-[12px] font-bold px-2 py-0.5 rounded-lg" style={{ color: rpeColor(fb.rpe), background: `${rpeColor(fb.rpe)}15` }}>
+                                      RPE {fb.rpe}
+                                    </span>
+                                    {fb.difficulty && (
+                                      <span className="text-[11px] font-semibold px-2 py-0.5 rounded-lg" style={{ color: difficultyColor(fb.difficulty), background: `${difficultyColor(fb.difficulty)}15` }}>
+                                        {difficultyLabel(fb.difficulty)}
+                                      </span>
+                                    )}
+                                    {fb.notes && (
+                                      <span className="text-[11px]" style={{ color: "rgba(255,255,255,0.4)" }}>{fb.notes}</span>
+                                    )}
+                                  </>
+                                )}
+                                {!fb.id && (
+                                  <span className="text-[11px]" style={{ color: "rgba(255,255,255,0.25)" }}>No feedback yet</span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+
+                      {feedbackEditing[s.id] && (
+                        <div className="flex gap-2 mt-3">
+                          <button onClick={() => saveFeedback(s.id)} disabled={savingFeedback}
+                            className="btn-primary !py-1.5 text-[12px]">
+                            {savingFeedback ? "Saving..." : "Save All Feedback"}
+                          </button>
+                          <button onClick={() => setFeedbackEditing((prev) => ({ ...prev, [s.id]: false }))}
+                            className="btn-secondary !py-1.5 text-[12px]">
+                            Cancel
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 

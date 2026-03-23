@@ -14,6 +14,7 @@ const trainerLinks = [
   { href: "/endeavours", label: "Endeavours", icon: "target" },
   { href: "/training-plans", label: "Plans", icon: "calendar" },
   { href: "/sessions", label: "Sessions", icon: "activity" },
+  { href: "/health", label: "Health", icon: "heart" },
   { href: "/exercises", label: "Exercise Atlas", icon: "anatomy" },
 ];
 
@@ -22,6 +23,7 @@ const athleteLinks = [
   { href: "/endeavours", label: "Endeavours", icon: "target" },
   { href: "/training-plans", label: "Plans", icon: "calendar" },
   { href: "/sessions", label: "Sessions", icon: "activity" },
+  { href: "/health", label: "Health", icon: "heart" },
   { href: "/exercises", label: "Exercise Atlas", icon: "anatomy" },
 ];
 
@@ -40,6 +42,8 @@ function NavIcon({ icon, active }: { icon: string; active: boolean }) {
       return <svg {...props}><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>;
     case "activity":
       return <svg {...props}><polyline points="22,12 18,12 15,21 9,3 6,12 2,12" /></svg>;
+    case "heart":
+      return <svg {...props}><path d="M20.84 4.61a5.5 5.5 0 00-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 00-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 000-7.78z" /></svg>;
     case "anatomy":
       return <svg {...props}><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z" /><path d="M12 6v12M8 8c0 2 1.5 3 4 3s4-1 4-3M8 16c0-2 1.5-3 4-3s4 1 4 3" /></svg>;
     default:

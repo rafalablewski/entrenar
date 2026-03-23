@@ -86,4 +86,32 @@ export async function initializeDb() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     )
   `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS health_reports (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id),
+      type TEXT NOT NULL CHECK (type IN ('injury', 'pain', 'note')),
+      body_area TEXT NOT NULL,
+      severity INTEGER DEFAULT 3 CHECK (severity >= 1 AND severity <= 10),
+      title TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      status TEXT DEFAULT 'active' CHECK (status IN ('active', 'monitoring', 'resolved')),
+      reported_at TEXT NOT NULL,
+      resolved_at TEXT DEFAULT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
+
+  await sql`
+    CREATE TABLE IF NOT EXISTS exercise_feedback (
+      id TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL REFERENCES training_sessions(id) ON DELETE CASCADE,
+      exercise_name TEXT NOT NULL,
+      rpe INTEGER CHECK (rpe >= 1 AND rpe <= 10),
+      difficulty TEXT CHECK (difficulty IN ('too_easy', 'easy', 'just_right', 'hard', 'too_hard')),
+      notes TEXT DEFAULT '',
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    )
+  `;
 }

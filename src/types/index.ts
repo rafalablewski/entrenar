@@ -71,3 +71,29 @@ export interface Exercise {
   duration?: string;
   notes?: string;
 }
+
+export interface HealthReport {
+  id: string;
+  user_id: string;
+  type: "injury" | "pain" | "note";
+  body_area: string;
+  severity: number;
+  title: string;
+  description: string;
+  status: "active" | "monitoring" | "resolved";
+  reported_at: string;
+  resolved_at: string | null;
+  created_at: string;
+  // joined
+  user_name?: string;
+}
+
+export interface ExerciseFeedback {
+  id: string;
+  session_id: string;
+  exercise_name: string;
+  rpe: number;
+  difficulty: "too_easy" | "easy" | "just_right" | "hard" | "too_hard";
+  notes: string;
+  created_at: string;
+}
