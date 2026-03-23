@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import ShareableStory from "@/components/ShareableStory";
 
 interface Exercise { name: string; sets?: number; reps?: string; weight?: string; duration?: string; notes?: string; }
 interface TrainingSession {
@@ -60,6 +61,7 @@ export default function SessionsPage() {
   const [feedbackMap, setFeedbackMap] = useState<Record<string, FeedbackItem[]>>({});
   const [feedbackEditing, setFeedbackEditing] = useState<Record<string, boolean>>({});
   const [savingFeedback, setSavingFeedback] = useState(false);
+  const [shareSession, setShareSession] = useState<TrainingSession | null>(null);
 
   useEffect(() => { fetchData(); }, []);
 
@@ -230,10 +232,16 @@ export default function SessionsPage() {
                   </p>
                   {s.description && <p className="text-[13px] mt-2" style={{ color: "rgba(255,255,255,0.45)" }}>{s.description}</p>}
                 </div>
-                <button onClick={() => handleDelete(s.id)} className="text-[12px] font-medium transition-colors" style={{ color: "rgba(255,255,255,0.25)" }}
-                  onMouseEnter={(e) => (e.currentTarget.style.color = "#FF3B5C")} onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.25)")}>
-                  Delete
-                </button>
+                <div className="flex gap-3">
+                  <button onClick={() => setShareSession(s)} className="text-[12px] font-medium transition-colors" style={{ color: "rgba(255,255,255,0.25)" }}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = "#A855F7")} onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.25)")}>
+                    Share
+                  </button>
+                  <button onClick={() => handleDelete(s.id)} className="text-[12px] font-medium transition-colors" style={{ color: "rgba(255,255,255,0.25)" }}
+                    onMouseEnter={(e) => (e.currentTarget.style.color = "#FF3B5C")} onMouseLeave={(e) => (e.currentTarget.style.color = "rgba(255,255,255,0.25)")}>
+                    Delete
+                  </button>
+                </div>
               </div>
 
               {exercises.length > 0 && (
@@ -411,6 +419,20 @@ export default function SessionsPage() {
           );
         })}
       </div>
+
+      {shareSession && (
+        <ShareableStory
+          data={{
+            title: shareSession.title,
+            date: shareSession.date,
+            planTitle: shareSession.plan_title,
+            exercises: JSON.parse(shareSession.exercises || "[]"),
+            notes: shareSession.notes,
+            status: shareSession.status,
+          }}
+          onClose={() => setShareSession(null)}
+        />
+      )}
     </div>
   );
 }
