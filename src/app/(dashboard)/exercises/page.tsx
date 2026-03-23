@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import BodyMap from "@/components/anatomy/BodyMap";
+import Anatomy3DViewer from "@/components/anatomy/Anatomy3DViewer";
 import ExerciseDetailPanel from "@/components/exercises/ExerciseDetailPanel";
 
 interface MuscleDetail {
@@ -205,17 +205,14 @@ export default function ExercisesPage() {
                 onClose={() => setSelectedExercise(null)}
               />
             ) : (
-              <div className="card p-6">
+              <div>
                 <h3 className="text-[12px] font-bold uppercase tracking-widest mb-4" style={{ color: "rgba(255,255,255,0.25)" }}>
-                  Muscle Filter
+                  3D Anatomy Model
                 </h3>
                 <p className="text-[12px] mb-4" style={{ color: "rgba(255,255,255,0.35)" }}>
-                  Click a muscle region to filter exercises
+                  Select an exercise to see animated simulation
                 </p>
-                <BodyMap
-                  onMuscleSelect={(g) => setSelectedMuscleGroup(selectedMuscleGroup === g ? null : g)}
-                  selectedMuscle={selectedMuscleGroup}
-                />
+                <Anatomy3DViewer highlightedMuscles={selectedMuscleGroup ? [selectedMuscleGroup] : []} />
               </div>
             )}
           </div>

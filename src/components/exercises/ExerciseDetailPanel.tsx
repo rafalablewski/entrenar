@@ -1,7 +1,6 @@
 "use client";
 
-import BodyMap from "@/components/anatomy/BodyMap";
-import ExerciseDemo from "@/components/exercises/ExerciseDemo";
+import Anatomy3DViewer from "@/components/anatomy/Anatomy3DViewer";
 
 interface MuscleDetail {
   name: string;
@@ -84,11 +83,13 @@ export default function ExerciseDetailPanel({ exercise, muscleTab, setMuscleTab,
           {exercise.detailedDescription || exercise.description}</p>
       </div>
 
-      {/* Exercise Demo */}
-      <div className="px-6 py-4 demo-box mx-4 my-3 rounded-2xl">
-        <p className="text-[9px] font-bold uppercase tracking-widest mb-2" style={{ color: "rgba(0,240,255,0.5)" }}>
-          Movement Simulation</p>
-        <ExerciseDemo exerciseId={exercise.id} exerciseName={exercise.name} movementPattern={exercise.movementPattern} />
+      {/* 3D Anatomy + Exercise Animation */}
+      <div className="px-4 py-3">
+        <Anatomy3DViewer
+          movementPattern={exercise.movementPattern}
+          highlightedMuscles={exercise.muscleGroups}
+          compact
+        />
       </div>
 
       {/* Movement info */}
@@ -105,30 +106,23 @@ export default function ExerciseDetailPanel({ exercise, muscleTab, setMuscleTab,
         ))}
       </div>
 
-      {/* Anatomy section with mini body map */}
+      {/* Muscle details */}
       <div className="px-6 py-4" style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
-        <div className="flex gap-4">
-          <div className="flex-shrink-0">
-            <BodyMap highlightedMuscles={exercise.muscleGroups} compact peelLevel={40} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex gap-1 mb-3">
-              {(["all", "primary", "secondary", "stabilizer"] as const).map(tab => (
-                <button key={tab} onClick={() => setMuscleTab(tab)}
-                  className="px-3 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wider transition-all"
-                  style={{
-                    background: muscleTab === tab ? "rgba(0,240,255,0.08)" : "transparent",
-                    color: muscleTab === tab ? "#00F0FF" : "rgba(255,255,255,0.25)",
-                  }}>{tab} {tab !== "all" && `(${exercise.muscles?.filter(m => m.role === tab).length || 0})`}</button>
-              ))}
-            </div>
+        <div className="flex gap-1 mb-3">
+          {(["all", "primary", "secondary", "stabilizer"] as const).map(tab => (
+            <button key={tab} onClick={() => setMuscleTab(tab)}
+              className="px-3 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wider transition-all"
+              style={{
+                background: muscleTab === tab ? "rgba(0,240,255,0.08)" : "transparent",
+                color: muscleTab === tab ? "#00F0FF" : "rgba(255,255,255,0.25)",
+              }}>{tab} {tab !== "all" && `(${exercise.muscles?.filter(m => m.role === tab).length || 0})`}</button>
+          ))}
+        </div>
 
-            <div className="space-y-1.5 max-h-[280px] overflow-y-auto pr-1">
-              {visibleMuscles.map((m, i) => (
-                <MuscleCard key={i} muscle={m} />
-              ))}
-            </div>
-          </div>
+        <div className="space-y-1.5 max-h-[280px] overflow-y-auto pr-1">
+          {visibleMuscles.map((m, i) => (
+            <MuscleCard key={i} muscle={m} />
+          ))}
         </div>
       </div>
 
