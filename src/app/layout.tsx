@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Prosperity Group LLC",
-  description: "Strategic holding company — Trading, Food & Beverage",
+  title: "Prosperity Group LLC — Strategic Holding Company",
+  description:
+    "Privately held holding company with operating subsidiaries in proprietary trading, food service, and hospitality.",
 };
 
 export default function RootLayout({
@@ -14,12 +15,18 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap"
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
+        />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap"
           rel="stylesheet"
         />
       </head>
-      <body className="antialiased">{children}</body>
+      <body>{children}</body>
     </html>
   );
 }
