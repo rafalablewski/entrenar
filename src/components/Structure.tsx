@@ -20,12 +20,11 @@ const subsidiaries = [
   },
   {
     name: "Tea House / Cafe",
-    tag: "25% Owned",
+    tag: "50% Owned",
     tagColor: "bg-emerald-100 text-emerald-800",
     owners: [
-      { name: "Holding Co.", pct: 25 },
+      { name: "Holding Co.", pct: 50 },
       { name: "Wife", pct: 50 },
-      { name: "Remaining", pct: 25 },
     ],
     color: "emerald",
   },
@@ -37,7 +36,6 @@ const barColors: Record<string, string> = {
   "Partner B": "bg-amber-400",
   "Partner C": "bg-amber-300",
   Wife: "bg-emerald-500",
-  Remaining: "bg-emerald-300",
 };
 
 export default function Structure() {
