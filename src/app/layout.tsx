@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Entrenar - Trainer & Athlete Platform",
-  description: "Manage training plans, track progress, and prepare for your next endeavour",
+  title: "Prosperity Group LLC — Strategic Holding Company",
+  description:
+    "Privately held holding company with operating subsidiaries in proprietary trading, food service, and hospitality.",
 };
 
 export default function RootLayout({
@@ -13,9 +14,19 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className="bg-gray-50 text-gray-900 min-h-screen antialiased">
-        {children}
-      </body>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link
+          rel="preconnect"
+          href="https://fonts.gstatic.com"
+          crossOrigin="anonymous"
+        />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;500;600;700&display=swap"
+          rel="stylesheet"
+        />
+      </head>
+      <body>{children}</body>
     </html>
   );
 }
