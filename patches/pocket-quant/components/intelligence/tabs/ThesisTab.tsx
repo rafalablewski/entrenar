@@ -5,66 +5,9 @@ import SectionLabel from "@/components/ui/SectionLabel";
 import Badge from "@/components/ui/Badge";
 import { MetricCard, SectionDivider, TabTemplateFooter, AwaitingData } from "@/components/shared/DataDisplayComponents";
 import { useStockData } from "@/components/intelligence/StockDataContext";
+import { renderGenericValue, renderOverflowFields } from "./shared/OverflowFields";
 
 interface Props { ticker: string }
-
-/* eslint-disable @typescript-eslint/no-explicit-any */
-function renderOverflowFields(item: Record<string, any>, knownFields: Set<string>) {
-  const extras = Object.entries(item).filter(
-    ([k, v]) => !knownFields.has(k) && v !== undefined && v !== null && v !== ""
-  );
-  if (extras.length === 0) return null;
-  return (
-    <div className="flex flex-wrap gap-x-3 gap-y-0.5 mt-1">
-      {extras.map(([k, v]) => (
-        <span key={k} className="text-pq-text-dim text-[9px]">
-          {k}: {typeof v === "object" ? JSON.stringify(v) : String(v)}
-        </span>
-      ))}
-    </div>
-  );
-}
-
-function renderGenericValue(value: any): React.ReactNode {
-  if (value === null || value === undefined) return <span className="text-pq-text-dim text-xs">—</span>;
-  if (typeof value === "string") return <div className="text-xs text-pq-text leading-relaxed">{value}</div>;
-  if (Array.isArray(value)) {
-    return (
-      <ul className="text-xs text-pq-text space-y-1">
-        {value.map((item, i) => (
-          <li key={i} className="flex gap-2">
-            <span className="text-pq-text-dim">•</span>
-            {typeof item === "object" ? (
-              <div className="flex flex-wrap gap-x-3 gap-y-0.5">
-                {Object.entries(item).map(([k, v]) => (
-                  <span key={k} className="text-pq-text-dim text-[9px]">
-                    {k}: {typeof v === "object" ? JSON.stringify(v) : String(v)}
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <span>{String(item)}</span>
-            )}
-          </li>
-        ))}
-      </ul>
-    );
-  }
-  if (typeof value === "object") {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-1">
-        {Object.entries(value).map(([k, v]) => (
-          <div key={k} className="flex items-baseline justify-between border-b border-white/5 pb-1">
-            <span className="text-[10px] text-pq-text-dim">{k}</span>
-            <span className="text-xs text-pq-text font-mono">{typeof v === "object" ? JSON.stringify(v) : String(v)}</span>
-          </div>
-        ))}
-      </div>
-    );
-  }
-  return <div className="text-xs text-pq-text">{String(value)}</div>;
-}
-/* eslint-enable @typescript-eslint/no-explicit-any */
 
 function convictionColor(c?: string): string {
   if (!c) return "text-pq-text-dim";

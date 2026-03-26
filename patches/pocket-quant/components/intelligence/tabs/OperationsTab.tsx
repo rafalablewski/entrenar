@@ -1,39 +1,10 @@
 "use client";
 
-import React from "react";
 import Panel from "@/components/ui/Panel";
 import SectionLabel from "@/components/ui/SectionLabel";
 import Badge from "@/components/ui/Badge";
 import { useStockData } from "@/components/intelligence/StockDataContext";
-
-function renderGenericValue(value: unknown): React.ReactNode {
-  if (value === null || value === undefined) return "—";
-  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return String(value);
-  if (Array.isArray(value)) {
-    return (
-      <div className="space-y-1">
-        {value.map((item, i) => (
-          <div key={i} className="text-[9px] text-pq-text-dim">
-            {typeof item === "object" ? Object.entries(item as Record<string, unknown>).map(([k, v]) => `${k}: ${String(v)}`).join(" · ") : String(item)}
-          </div>
-        ))}
-      </div>
-    );
-  }
-  if (typeof value === "object") {
-    return (
-      <div className="space-y-0.5">
-        {Object.entries(value as Record<string, unknown>).map(([k, v]) => (
-          <div key={k} className="flex justify-between text-[9px]">
-            <span className="text-pq-text-dim">{k}</span>
-            <span className="text-pq-text-secondary font-mono">{String(v)}</span>
-          </div>
-        ))}
-      </div>
-    );
-  }
-  return String(value);
-}
+import { renderGenericValue } from "./shared/OverflowFields";
 
 /** Known top-level keys on the operations object */
 const KNOWN_OPS_KEYS = new Set(["kpis", "milestones"]);
