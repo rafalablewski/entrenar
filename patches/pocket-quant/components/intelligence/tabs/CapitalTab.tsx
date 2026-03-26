@@ -1,5 +1,6 @@
 "use client";
 
+import React from "react";
 import { useState } from "react";
 import Panel from "@/components/ui/Panel";
 import SectionLabel from "@/components/ui/SectionLabel";
@@ -33,6 +34,35 @@ const STANDARD_METRICS = [
   "SHORT INTEREST",
   "DAYS TO COVER",
 ] as const;
+
+function renderGenericValue(value: unknown): React.ReactNode {
+  if (value === null || value === undefined) return "—";
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") return String(value);
+  if (Array.isArray(value)) {
+    return (
+      <div className="space-y-1">
+        {value.map((item, i) => (
+          <div key={i} className="text-[9px] text-pq-text-dim">
+            {typeof item === "object" ? Object.entries(item as Record<string, unknown>).map(([k, v]) => `${k}: ${String(v)}`).join(" · ") : String(item)}
+          </div>
+        ))}
+      </div>
+    );
+  }
+  if (typeof value === "object") {
+    return (
+      <div className="space-y-0.5">
+        {Object.entries(value as Record<string, unknown>).map(([k, v]) => (
+          <div key={k} className="flex justify-between text-[9px]">
+            <span className="text-pq-text-dim">{k}</span>
+            <span className="text-pq-text-secondary font-mono">{String(v)}</span>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return String(value);
+}
 
 interface Props {
   ticker: string;
@@ -107,6 +137,19 @@ export function CapitalTab({ ticker }: Props) {
       {activeSection === "insider-activity" && (
         <InsiderActivitySection cap={cap} />
       )}
+
+      {/* Render any unknown top-level keys in capital data */}
+      {cap && (() => {
+        const knownKeys = new Set(["keyMetrics", "shareClasses", "votingPower", "divergence", "majorHolders", "ownershipBreakdown", "capitalEvents", "sbcQuarterly", "sbcBurnRate", "dilutionCategories", "fullyDilutedShares", "totalDilutionPct", "dilutionWaterfall", "liquidityMetrics", "debtSchedule", "coverageRatios", "insiderTransactions", "insiderSentiment", "_latestFilingDate"]);
+        const extras = Object.entries(cap).filter(([k]) => !knownKeys.has(k));
+        if (extras.length === 0) return null;
+        return extras.map(([key, value]) => (
+          <div key={key}>
+            <SectionLabel className="text-pq-text-bright">{key.replace(/([A-Z])/g, " $1").toUpperCase()}</SectionLabel>
+            <Panel className="p-3">{renderGenericValue(value)}</Panel>
+          </div>
+        ));
+      })()}
 
       {!cap && (
         <div className="text-[10px] text-pq-text-dim border border-white/10 p-3">
