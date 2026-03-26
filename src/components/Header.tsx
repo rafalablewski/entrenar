@@ -28,6 +28,12 @@ export default function Header() {
               {item}
             </a>
           ))}
+          <a
+            href="/notes"
+            className="text-gold-400 text-sm font-medium hover:text-gold-300 transition-colors duration-200"
+          >
+            Notes
+          </a>
         </nav>
       </div>
     </header>
