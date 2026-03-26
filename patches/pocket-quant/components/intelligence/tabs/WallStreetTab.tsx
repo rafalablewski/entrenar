@@ -20,7 +20,7 @@ import {
 interface Props { ticker: string }
 
 /** Known top-level keys on the wallStreet data object. */
-const KNOWN_WS_KEYS = new Set([
+const KNOWN_WS_KEYS: ReadonlySet<string> = new Set([
   "headerMetrics", "ratingDistribution", "priceTargets",
   "analystActions", "consensusEstimates", "estimateRevisions",
   "earningsSurprise", "firmCoverage", "coverageSummary",
@@ -35,18 +35,18 @@ export function WallStreetTab({ ticker }: Props) {
     <div className="space-y-3 md:space-y-4">
       <SectionLabel className="text-pq-text-bright">WALL STREET CONSENSUS</SectionLabel>
 
-      <HeaderMetrics ws={ws as Record<string, unknown> | undefined} />
-      <RatingDistribution ws={ws as Record<string, unknown> | undefined} />
-      <PriceTargets ws={ws as Record<string, unknown> | undefined} />
-      <AnalystActionsTable ws={ws as Record<string, unknown> | undefined} />
+      <HeaderMetrics ws={ws} />
+      <RatingDistribution ws={ws} />
+      <PriceTargets ws={ws} />
+      <AnalystActionsTable ws={ws} />
 
       {/* ── CONSENSUS SNAPSHOT ── */}
       <SectionDivider />
       <SectionLabel className="text-pq-text-bright">CONSENSUS SNAPSHOT</SectionLabel>
 
-      <ConsensusEstimatesTable ws={ws as Record<string, unknown> | undefined} />
-      <EstimateRevisionsTable ws={ws as Record<string, unknown> | undefined} />
-      <EarningsSurpriseTable ws={ws as Record<string, unknown> | undefined} />
+      <ConsensusEstimatesTable ws={ws} />
+      <EstimateRevisionsTable ws={ws} />
+      <EarningsSurpriseTable ws={ws} />
 
       {/* ── COVERAGE BY FIRM ── */}
       <SectionDivider />
@@ -88,13 +88,10 @@ export function WallStreetTab({ ticker }: Props) {
         </div>
       </Panel>
 
-      <CoverageSummary ws={ws as Record<string, unknown> | undefined} />
+      <CoverageSummary ws={ws} />
 
       {/* ── Top-level overflow: unknown sections on wallStreet data ── */}
-      <OverflowSections
-        data={ws as Record<string, unknown> | undefined}
-        knownKeys={KNOWN_WS_KEYS}
-      />
+      <OverflowSections data={ws as Record<string, unknown> | undefined} knownKeys={KNOWN_WS_KEYS} />
 
       {/* ── Template note (only when no data) ── */}
       {!ws && (

@@ -21,7 +21,7 @@ import {
 interface Props { ticker: string }
 
 /** Known top-level keys on the investment data object. */
-const KNOWN_INV_KEYS = new Set([
+const KNOWN_INV_KEYS: ReadonlySet<string> = new Set([
   "dueDiligence", "checklist", "assessment", "scorecard", "compositeScore",
   "thesis", "bullCase", "bearCase", "growthDrivers", "riskMatrix",
   "positionSizing", "priceTargets", "archive",
@@ -34,13 +34,15 @@ const DD_PROFILE_LABELS = [
 ];
 
 /** The 4 hardcoded assessment field keys. */
-const ASSESSMENT_KNOWN_KEYS = new Set(["rating", "conviction", "action", "riskLevel"]);
+const ASSESSMENT_KNOWN_KEYS: ReadonlySet<string> = new Set(["rating", "conviction", "action", "riskLevel"]);
 
 export function InvestmentTab({ ticker }: Props) {
   const data = useStockData();
   const inv = data?.investment ?? null;
 
-  const ddProfileKeySet = useMemo(() => new Set(DD_PROFILE_LABELS), []);
+  const ddProfileKeySet = useMemo(
+    () => new Set(DD_PROFILE_LABELS) as ReadonlySet<string>, []
+  );
 
   /* ── Compute checklist progress ── */
   const checklistEntries = inv ? Object.entries(inv.checklist ?? {}) : [];
@@ -74,12 +76,12 @@ export function InvestmentTab({ ticker }: Props) {
           {DD_PROFILE_LABELS.map((label) => (
             <ProfileRow key={label} label={label} value={ddValues[label] ?? undefined} />
           ))}
-          {/* Overflow: extra DD profile keys not in the 6 hardcoded labels */}
-          <OverflowKeyValues
-            data={inv?.dueDiligence as Record<string, unknown> | undefined}
-            knownKeys={ddProfileKeySet}
-          />
         </div>
+        {/* Overflow: extra DD profile keys not in the 6 hardcoded labels */}
+        <OverflowKeyValues
+          data={inv?.dueDiligence as Record<string, unknown> | undefined}
+          knownKeys={ddProfileKeySet}
+        />
       </Panel>
 
       <DDChecklistPanel checklist={inv?.checklist ?? null} />
@@ -122,7 +124,7 @@ export function InvestmentTab({ ticker }: Props) {
 
       <Expandable title="INVESTMENT SUMMARY" badge="+">
         <Panel className="p-3 md:p-4 space-y-3">
-          <div className="text-[10px] text-pq-text-dim tracking-wide uppercase mb-1">CORE THESIS (1–3 SENTENCES)</div>
+          <div className="text-[10px] text-pq-text-dim tracking-wide uppercase mb-1">CORE THESIS (1-3 SENTENCES)</div>
           <div className="text-xs text-pq-text leading-relaxed border-l-2 border-pq-accent/30 pl-3">
             {inv?.thesis ?? "—"}
           </div>

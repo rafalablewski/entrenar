@@ -14,20 +14,19 @@ interface Props { ticker: string }
 
 const STATUS_CONFIG = {
   pass:    { label: "PASS",    variant: "green"   as const, icon: "✓" },
-  fail:    { label: "FAIL",    variant: "red"     as const, icon: "!" },
+  fail:    { label: "FAIL",    variant: "red"     as const, icon: "✗" },
   warn:    { label: "WARNING", variant: "yellow"  as const, icon: "!" },
   pending: { label: "PENDING", variant: "default" as const, icon: "?" },
 };
 
 /** Known top-level keys on the checklist data object. */
-const KNOWN_CL_KEYS = new Set([
+const KNOWN_CL_KEYS: ReadonlySet<string> = new Set([
   "dueDiligence", "scorecard", "compositeScore", "compositeVerdict",
   "preTrade", "lastReviewed",
 ]);
 
 function statusIcon(status: string) {
-  const cfg = STATUS_CONFIG[status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.pending;
-  return cfg;
+  return STATUS_CONFIG[status as keyof typeof STATUS_CONFIG] ?? STATUS_CONFIG.pending;
 }
 
 export function ChecklistTab({ ticker }: Props) {
@@ -134,16 +133,12 @@ export function ChecklistTab({ ticker }: Props) {
         {DUE_DILIGENCE_ITEMS.map((item) => {
           const d = cl.dueDiligence?.[item.label];
           const cfg = d ? statusIcon(d.status) : STATUS_CONFIG.pending;
-          return (
-            <DDItemCard key={item.id} label={item.label} cfg={cfg} notes={d?.notes} defaultOpen={d?.status === "warn" || d?.status === "fail"} />
-          );
+          return <DDItemCard key={item.id} label={item.label} cfg={cfg} notes={d?.notes} defaultOpen={d?.status === "warn" || d?.status === "fail"} />;
         })}
         {/* Overflow: DD items from data not in manifest */}
         {overflowDDItems.map(([label, d]) => {
           const cfg = statusIcon(d.status);
-          return (
-            <DDItemCard key={label} label={label} cfg={cfg} notes={d?.notes} defaultOpen={d?.status === "warn" || d?.status === "fail"} />
-          );
+          return <DDItemCard key={label} label={label} cfg={cfg} notes={d?.notes} defaultOpen={d?.status === "warn" || d?.status === "fail"} />;
         })}
       </div>
 
