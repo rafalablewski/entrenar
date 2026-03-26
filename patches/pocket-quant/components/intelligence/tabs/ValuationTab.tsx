@@ -12,12 +12,15 @@ import {
   DCF_ASSUMPTIONS,
 } from "@/lib/manifests";
 import { useStockData } from "@/components/intelligence/StockDataContext";
-import { OverflowKeyValues, OverflowSections } from "./shared/OverflowFields";
+import {
+  OverflowKeyValues,
+  OverflowSections,
+} from "./shared/OverflowFields";
 
 interface Props { ticker: string }
 
 /** Known top-level keys on the valuation data object. */
-const KNOWN_VALUATION_KEYS = new Set([
+const KNOWN_VALUATION_KEYS: ReadonlySet<string> = new Set([
   "dcfParams", "stockSpecificInputs", "targets", "dcfOutput",
   "stockSpecificOutputs", "assumptions",
 ]);
@@ -27,9 +30,15 @@ export function ValuationTab({ ticker }: Props) {
   const scenario = VALUATION_SCENARIOS.find((s) => s.id === activeScenario) ?? VALUATION_SCENARIOS[2];
   const d = useStockData();
 
-  const dcfParamKeys = useMemo(() => new Set(DCF_PARAMETERS.map((p) => p.name)), []);
-  const dcfOutputKeys = useMemo(() => new Set(DCF_OUTPUT_METRICS.map((m) => m.name)), []);
-  const dcfAssumptionKeys = useMemo(() => new Set(DCF_ASSUMPTIONS.map((a) => a.name)), []);
+  const dcfParamKeys = useMemo(
+    () => new Set(DCF_PARAMETERS.map((p) => p.name)) as ReadonlySet<string>, []
+  );
+  const dcfOutputKeys = useMemo(
+    () => new Set(DCF_OUTPUT_METRICS.map((m) => m.name)) as ReadonlySet<string>, []
+  );
+  const dcfAssumptionKeys = useMemo(
+    () => new Set(DCF_ASSUMPTIONS.map((a) => a.name)) as ReadonlySet<string>, []
+  );
 
   return (
     <div className="space-y-3 md:space-y-4">
@@ -54,12 +63,12 @@ export function ValuationTab({ ticker }: Props) {
           {DCF_PARAMETERS.map((p) => (
             <Row key={p.id} label={p.name} value={d?.valuation?.dcfParams?.[p.name]} />
           ))}
-          {/* Overflow: extra dcfParams keys not in DCF_PARAMETERS manifest */}
-          <OverflowKeyValues
-            data={d?.valuation?.dcfParams as Record<string, unknown> | undefined}
-            knownKeys={dcfParamKeys}
-          />
         </div>
+        {/* Overflow: extra dcfParams keys not in DCF_PARAMETERS manifest */}
+        <OverflowKeyValues
+          data={d?.valuation?.dcfParams as Record<string, unknown> | undefined}
+          knownKeys={dcfParamKeys}
+        />
         <div className="border-t border-white/5 pt-2 mt-2">
           <div className="text-[10px] text-pq-text-dim tracking-wide uppercase mb-2">STOCK-SPECIFIC INPUTS</div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-x-4 md:gap-x-8 gap-y-2">
@@ -102,12 +111,12 @@ export function ValuationTab({ ticker }: Props) {
           {DCF_OUTPUT_METRICS.map((m) => (
             <OutputMetric key={m.id} label={m.name} value={d?.valuation?.dcfOutput?.[m.name]} />
           ))}
-          {/* Overflow: extra dcfOutput keys not in DCF_OUTPUT_METRICS manifest */}
-          <OverflowKeyValues
-            data={d?.valuation?.dcfOutput as Record<string, unknown> | undefined}
-            knownKeys={dcfOutputKeys}
-          />
         </div>
+        {/* Overflow: extra dcfOutput keys not in DCF_OUTPUT_METRICS manifest */}
+        <OverflowKeyValues
+          data={d?.valuation?.dcfOutput as Record<string, unknown> | undefined}
+          knownKeys={dcfOutputKeys}
+        />
         <div className="border-t border-white/5 mt-3 pt-3">
           <div className="text-[10px] text-pq-text-dim tracking-wide uppercase mb-2">STOCK-SPECIFIC OUTPUTS</div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 md:gap-x-8 gap-y-3">
@@ -129,10 +138,15 @@ export function ValuationTab({ ticker }: Props) {
             description={d?.valuation?.assumptions?.[a.name] ?? a.description ?? ""} />
         ))}
         {/* Overflow: extra assumption keys not in DCF_ASSUMPTIONS manifest */}
-        <OverflowKeyValues
-          data={d?.valuation?.assumptions as Record<string, unknown> | undefined}
-          knownKeys={dcfAssumptionKeys}
-        />
+        {d?.valuation?.assumptions && (() => {
+          const extras = Object.entries(d.valuation.assumptions).filter(
+            ([k]) => !dcfAssumptionKeys.has(k) && !k.startsWith("_")
+          );
+          if (extras.length === 0) return null;
+          return extras.map(([k, v]) => (
+            <Assumption key={k} label={k} description={typeof v === "string" ? v : JSON.stringify(v)} />
+          ));
+        })()}
       </Panel>
 
       {/* ── Methodology ── */}

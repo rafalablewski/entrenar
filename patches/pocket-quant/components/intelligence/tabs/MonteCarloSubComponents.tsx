@@ -2,7 +2,7 @@
 
 import Panel from "@/components/ui/Panel";
 import Badge from "@/components/ui/Badge";
-import { OverflowKeyValues } from "../shared/OverflowFields";
+import { OverflowKeyValues } from "./shared/OverflowFields";
 import {
   MC_HISTORICAL_METRICS,
   MC_DRIVER_DISTRIBUTIONS,
