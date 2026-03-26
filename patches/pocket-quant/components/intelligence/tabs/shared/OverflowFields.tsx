@@ -87,8 +87,8 @@ export function OverflowSections({
 }
 
 /**
- * Renders overflow rows inside an existing MetricTable-style table body.
- * Returns <tr> elements for any metric keys in the data not covered by the manifest.
+ * Renders overflow rows for metric data not covered by the manifest.
+ * Wrapped in its own Panel with an "ADDITIONAL METRICS" header.
  */
 export function OverflowMetricRows({
   values,
