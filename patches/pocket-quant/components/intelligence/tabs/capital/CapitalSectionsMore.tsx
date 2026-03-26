@@ -101,7 +101,7 @@ export function TotalDilutionSection({ cap }: { cap: CapitalData | null }) {
           {/* Overflow: extra waterfall keys */}
           {extraWaterfall.map(([k, v]) => (
             <div key={k} className="flex items-center gap-3">
-              <span className="text-pq-text-dim text-[9px]">{k}: {String(v)}</span>
+              <span className="text-pq-text-dim text-[9px]">{k}: {typeof v === "object" && v !== null ? JSON.stringify(v) : String(v)}</span>
             </div>
           ))}
         </div>
@@ -165,7 +165,7 @@ export function LiquiditySection({ cap }: { cap: CapitalData | null }) {
                           {overflow.length > 0 && (
                             <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-0.5">
                               {overflow.map(([k, v]) => (
-                                <span key={k} className="text-pq-text-dim text-[9px]">{k}: {String(v)}</span>
+                                <span key={k} className="text-pq-text-dim text-[9px]">{k}: {typeof v === "object" && v !== null ? JSON.stringify(v) : String(v)}</span>
                               ))}
                             </div>
                           )}
@@ -249,7 +249,7 @@ export function InsiderActivitySection({ cap }: { cap: CapitalData | null }) {
                           {overflow.length > 0 && (
                             <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-0.5">
                               {overflow.map(([k, v]) => (
-                                <span key={k} className="text-pq-text-dim text-[9px]">{k}: {String(v)}</span>
+                                <span key={k} className="text-pq-text-dim text-[9px]">{k}: {typeof v === "object" && v !== null ? JSON.stringify(v) : String(v)}</span>
                               ))}
                             </div>
                           )}
@@ -304,7 +304,7 @@ export function InsiderActivitySection({ cap }: { cap: CapitalData | null }) {
         <Panel className="p-3 md:p-4">
           <div className="flex flex-wrap gap-x-3 gap-y-0.5">
             {extraSentiment.map(([k, v]) => (
-              <span key={k} className="text-pq-text-dim text-[9px]">{k}: {String(v)}</span>
+              <span key={k} className="text-pq-text-dim text-[9px]">{k}: {typeof v === "object" && v !== null ? JSON.stringify(v) : String(v)}</span>
             ))}
           </div>
         </Panel>

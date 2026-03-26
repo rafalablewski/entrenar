@@ -137,14 +137,27 @@ export function ScenariosTab({ ticker }: Props) {
               </tr>
             </thead>
             <tbody>
-              {(s.sensitivityDrivers ?? []).map((d: Record<string, unknown>, i: number) => (
-                <tr key={i} className="border-t border-white/5">
-                  <td className="py-2 pr-4 text-pq-text">{String(d.driver)}</td>
-                  <td className="py-2 px-3 text-center font-mono text-pq-red">{String(d.bearValue)}</td>
-                  <td className="py-2 px-3 text-center font-mono text-pq-text">{String(d.baseValue)}</td>
-                  <td className="py-2 px-3 text-center font-mono text-pq-green">{String(d.bullValue)}</td>
-                </tr>
-              ))}
+              {(s.sensitivityDrivers ?? []).map((d: Record<string, unknown>, i: number) => {
+                const DRIVER_KNOWN = new Set(["driver", "bearValue", "baseValue", "bullValue"]);
+                const driverExtras = Object.entries(d).filter(([k]) => !DRIVER_KNOWN.has(k) && !k.startsWith("_"));
+                return (
+                  <tr key={i} className="border-t border-white/5">
+                    <td className="py-2 pr-4 text-pq-text">
+                      {String(d.driver)}
+                      {driverExtras.length > 0 && (
+                        <div className="flex flex-wrap gap-2 mt-1">
+                          {driverExtras.map(([k, v]) => (
+                            <span key={k} className="text-pq-text-dim text-[9px]">{k}: {renderGenericValue(v)}</span>
+                          ))}
+                        </div>
+                      )}
+                    </td>
+                    <td className="py-2 px-3 text-center font-mono text-pq-red">{String(d.bearValue)}</td>
+                    <td className="py-2 px-3 text-center font-mono text-pq-text">{String(d.baseValue)}</td>
+                    <td className="py-2 px-3 text-center font-mono text-pq-green">{String(d.bullValue)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
           </div>

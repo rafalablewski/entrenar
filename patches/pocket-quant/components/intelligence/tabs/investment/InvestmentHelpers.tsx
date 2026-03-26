@@ -74,17 +74,30 @@ export function ArchivePanel({ inv }: {
             </thead>
             <tbody>
               {inv?.archiveRows ? (
-                inv.archiveRows.map((row, i) => (
-                  <tr key={i} className="border-t border-white/5">
-                    <td className="py-2 pr-4 font-mono text-pq-text-dim">{row.date}</td>
-                    <td className="py-2 px-3"><Badge variant="default">{row.type}</Badge></td>
-                    <td className="py-2 px-3 text-center"><Badge variant="default">{row.rating}</Badge></td>
-                    <td className="py-2 px-3 text-right font-mono text-pq-text">{row.target}</td>
-                    <td className="py-2 px-3 text-right font-mono text-pq-text">{row.priceAtTime}</td>
-                    <td className="py-2 px-3 text-right font-mono text-pq-text">{row.outcome}</td>
-                    <td className="py-2 px-3 text-pq-text-dim">{row.notes}</td>
-                  </tr>
-                ))
+                inv.archiveRows.map((row, i) => {
+                  const ARCHIVE_KNOWN = new Set(["date", "type", "rating", "target", "priceAtTime", "outcome", "notes"]);
+                  const extras = Object.entries(row).filter(([k]) => !ARCHIVE_KNOWN.has(k) && !k.startsWith("_"));
+                  return (
+                    <tr key={i} className="border-t border-white/5">
+                      <td className="py-2 pr-4 font-mono text-pq-text-dim">{row.date}</td>
+                      <td className="py-2 px-3"><Badge variant="default">{row.type}</Badge></td>
+                      <td className="py-2 px-3 text-center"><Badge variant="default">{row.rating}</Badge></td>
+                      <td className="py-2 px-3 text-right font-mono text-pq-text">{row.target}</td>
+                      <td className="py-2 px-3 text-right font-mono text-pq-text">{row.priceAtTime}</td>
+                      <td className="py-2 px-3 text-right font-mono text-pq-text">{row.outcome}</td>
+                      <td className="py-2 px-3 text-pq-text-dim">
+                        {row.notes}
+                        {extras.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-1">
+                            {extras.map(([k, v]) => (
+                              <span key={k} className="text-pq-text-dim text-[9px]">{k}: {typeof v === "object" && v !== null ? JSON.stringify(v) : String(v)}</span>
+                            ))}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
               ) : (
                 Array.from({ length: TEMPLATE_ROW_COUNTS.archiveRows }, (_, i) => (
                   <tr key={i} className="border-t border-white/5">
@@ -120,6 +133,17 @@ export function ArchivePanel({ inv }: {
             </Panel>
           );
         })}
+        {/* Overflow: extra historicalAccuracy keys beyond the 4 mapped ones */}
+        {inv?.historicalAccuracy && (() => {
+          const mappedValues = new Set(["TOTAL CALLS", "ACCURACY RATE", "AVG TARGET ERROR", "BEST CALL"]);
+          const extras = Object.entries(inv.historicalAccuracy).filter(([k]) => !mappedValues.has(k) && !k.startsWith("_"));
+          return extras.map(([k, v]) => (
+            <Panel key={k} className="p-3 text-center">
+              <div className="text-[10px] text-pq-text-dim tracking-wide mb-1">{k}</div>
+              <div className="text-lg font-bold text-pq-text-bright">{v ?? "-"}</div>
+            </Panel>
+          ));
+        })()}
       </div>
     </>
   );

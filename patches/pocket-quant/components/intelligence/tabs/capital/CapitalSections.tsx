@@ -219,7 +219,7 @@ export function MajorHoldersSection({ cap }: { cap: CapitalData | null }) {
                           {overflow.length > 0 && (
                             <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-0.5">
                               {overflow.map(([k, v]) => (
-                                <span key={k} className="text-pq-text-dim text-[9px]">{k}: {String(v)}</span>
+                                <span key={k} className="text-pq-text-dim text-[9px]">{k}: {typeof v === "object" && v !== null ? JSON.stringify(v) : String(v)}</span>
                               ))}
                             </div>
                           )}
@@ -302,7 +302,7 @@ export function CapitalEventsSection({ cap }: { cap: CapitalData | null }) {
                           {overflow.length > 0 && (
                             <div className="flex flex-wrap gap-x-2 gap-y-0.5 mt-0.5">
                               {overflow.map(([k, v]) => (
-                                <span key={k} className="text-pq-text-dim text-[9px]">{k}: {String(v)}</span>
+                                <span key={k} className="text-pq-text-dim text-[9px]">{k}: {typeof v === "object" && v !== null ? JSON.stringify(v) : String(v)}</span>
                               ))}
                             </div>
                           )}
