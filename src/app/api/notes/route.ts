@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDb, initializeDb } from "@/lib/db";
+import { getDb, ensureDb } from "@/lib/db";
 import { v4 as uuidv4 } from "uuid";
+
+export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    await initializeDb();
+    await ensureDb();
     const sql = getDb();
     const notes = await sql`
       SELECT id, title, content, created_at, updated_at
@@ -23,14 +25,18 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    await initializeDb();
+    await ensureDb();
     const sql = getDb();
     const body = await req.json();
     const { title, content } = body;
 
-    if (typeof title !== "string" || typeof content !== "string") {
+    if (
+      typeof title !== "string" ||
+      typeof content !== "string" ||
+      (!title.trim() && !content.trim())
+    ) {
       return NextResponse.json(
-        { error: "title and content are required strings" },
+        { error: "Title and content cannot both be empty" },
         { status: 400 }
       );
     }
@@ -53,14 +59,19 @@ export async function POST(req: NextRequest) {
 
 export async function PUT(req: NextRequest) {
   try {
-    await initializeDb();
+    await ensureDb();
     const sql = getDb();
     const body = await req.json();
     const { id, title, content } = body;
 
-    if (!id || typeof title !== "string" || typeof content !== "string") {
+    if (
+      !id ||
+      typeof title !== "string" ||
+      typeof content !== "string" ||
+      (!title.trim() && !content.trim())
+    ) {
       return NextResponse.json(
-        { error: "id, title, and content are required" },
+        { error: "id required; title and content cannot both be empty" },
         { status: 400 }
       );
     }
@@ -86,9 +97,9 @@ export async function PUT(req: NextRequest) {
 
 export async function DELETE(req: NextRequest) {
   try {
-    await initializeDb();
+    await ensureDb();
     const sql = getDb();
-    const { searchParams } = new URL(req.url);
+    const { searchParams } = req.nextUrl;
     const id = searchParams.get("id");
 
     if (!id) {

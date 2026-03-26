@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 
 interface Note {
   id: string;
@@ -17,16 +18,21 @@ export default function NotesPage() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchNotes = useCallback(async () => {
     try {
+      setError(null);
       const res = await fetch("/api/notes");
-      if (res.ok) {
+      if (!res.ok) {
         const data = await res.json();
-        setNotes(data);
+        setError(data.error || "Failed to load notes");
+        return;
       }
-    } catch (err) {
-      console.error("Failed to fetch notes:", err);
+      const data = await res.json();
+      setNotes(data);
+    } catch {
+      setError("Could not connect to the server");
     } finally {
       setLoading(false);
     }
@@ -40,17 +46,20 @@ export default function NotesPage() {
     setSelectedId(note.id);
     setTitle(note.title);
     setContent(note.content);
+    setError(null);
   }
 
   function startNewNote() {
     setSelectedId(null);
     setTitle("");
     setContent("");
+    setError(null);
   }
 
   async function saveNote() {
     if (!title.trim() && !content.trim()) return;
     setSaving(true);
+    setError(null);
     try {
       if (selectedId) {
         const res = await fetch("/api/notes", {
@@ -58,32 +67,39 @@ export default function NotesPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ id: selectedId, title, content }),
         });
-        if (res.ok) {
-          const updated = await res.json();
-          setNotes((prev: Note[]) =>
-            [updated, ...prev.filter((n: Note) => n.id !== selectedId)]
-          );
+        if (!res.ok) {
+          const data = await res.json();
+          setError(data.error || "Failed to save note");
+          return;
         }
+        const updated = await res.json();
+        setNotes((prev: Note[]) =>
+          [updated, ...prev.filter((n: Note) => n.id !== selectedId)]
+        );
       } else {
         const res = await fetch("/api/notes", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ title, content }),
         });
-        if (res.ok) {
-          const created = await res.json();
-          setNotes((prev: Note[]) => [created, ...prev]);
-          setSelectedId(created.id);
+        if (!res.ok) {
+          const data = await res.json();
+          setError(data.error || "Failed to create note");
+          return;
         }
+        const created = await res.json();
+        setNotes((prev: Note[]) => [created, ...prev]);
+        setSelectedId(created.id);
       }
-    } catch (err) {
-      console.error("Failed to save note:", err);
+    } catch {
+      setError("Could not connect to the server");
     } finally {
       setSaving(false);
     }
   }
 
   async function deleteNote(id: string) {
+    setError(null);
     try {
       const res = await fetch(`/api/notes?id=${id}`, { method: "DELETE" });
       if (res.ok || res.status === 204) {
@@ -91,9 +107,12 @@ export default function NotesPage() {
         if (selectedId === id) {
           startNewNote();
         }
+      } else {
+        const data = await res.json();
+        setError(data.error || "Failed to delete note");
       }
-    } catch (err) {
-      console.error("Failed to delete note:", err);
+    } catch {
+      setError("Could not connect to the server");
     }
   }
 
@@ -113,13 +132,13 @@ export default function NotesPage() {
       <header className="border-b border-white/5 bg-navy-950/95 backdrop-blur-sm">
         <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <a href="/" className="flex items-center gap-3 group">
+            <Link href="/" className="flex items-center gap-3 group">
               <div className="w-8 h-8 rounded border border-gold-500/40 flex items-center justify-center">
                 <span className="text-gold-500 font-serif text-sm font-semibold">
                   P
                 </span>
               </div>
-            </a>
+            </Link>
             <span className="text-slate-500 text-sm">/</span>
             <span className="text-white text-sm font-semibold">Notes</span>
           </div>
@@ -133,6 +152,13 @@ export default function NotesPage() {
       </header>
 
       <div className="max-w-6xl mx-auto px-6 py-8">
+        {/* Error banner */}
+        {error && (
+          <div className="mb-4 px-4 py-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+            {error}
+          </div>
+        )}
+
         <div className="flex gap-6 min-h-[calc(100vh-8rem)]">
           {/* Sidebar — note list */}
           <div className="w-72 shrink-0 space-y-2 overflow-y-auto">
