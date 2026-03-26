@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function Header() {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-navy-950/95 backdrop-blur-sm border-b border-white/5">
@@ -28,12 +30,12 @@ export default function Header() {
               {item}
             </a>
           ))}
-          <a
+          <Link
             href="/notes"
             className="text-gold-400 text-sm font-medium hover:text-gold-300 transition-colors duration-200"
           >
             Notes
-          </a>
+          </Link>
         </nav>
       </div>
     </header>
